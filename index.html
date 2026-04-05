@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRC Mission Control</title>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Code Highlight -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<style>
+body { background: #0f172a; color: #e2e8f0; }
+.card:hover { transform: translateY(-5px); }
+</style>
+
+</head>
+<body class="min-h-screen">
+
+<!-- Navbar -->
+<nav class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between sticky top-0">
+  <div class="font-bold text-xl text-blue-400">🚀 FRC Mission Control</div>
+  <div class="space-x-4">
+    <button onclick="showView('dashboard')">課程</button>
+    <button onclick="showView('resources')">資源</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="p-6 max-w-6xl mx-auto">
+
+<!-- Dashboard -->
+<div id="dashboard">
+  <h1 class="text-3xl mb-4 font-bold">學習儀表板</h1>
+  <div id="courses" class="grid md:grid-cols-2 gap-4"></div>
+</div>
+
+<!-- Lesson -->
+<div id="lesson" class="hidden">
+  <button onclick="showView('dashboard')" class="mb-4 text-blue-400">← 返回</button>
+  <div id="lessonContent"></div>
+</div>
+
+<!-- Resources -->
+<div id="resources" class="hidden">
+  <h2 class="text-2xl mb-4">資源庫</h2>
+  <div class="space-y-3">
+    <a href="https://docs.wpilib.org/" target="_blank" class="block bg-slate-800 p-3 rounded">WPILib Docs</a>
+    <a href="https://github.com/wpilibsuite/allwpilib" target="_blank" class="block bg-slate-800 p-3 rounded">WPILib GitHub</a>
+  </div>
+</div>
+
+</div>
+
+<script>
+
+// ===== 課程資料 =====
+const lessons = [
+{
+  id:"l1",
+  title:"FRC 基礎",
+  desc:"了解比賽與團隊",
+  code:"// 無程式碼",
+  tasks:["看規則","了解分工"]
+},
+{
+  id:"l2",
+  title:"Java / WPILib",
+  desc:"寫第一個機器人",
+  code:`public class Robot {
+  public void robotInit(){}
+}`,
+  tasks:["安裝WPILib","跑範例"]
+}
+];
+
+// ===== 儲存進度 =====
+let progress = JSON.parse(localStorage.getItem("progress")||"{}");
+
+// ===== 切換畫面 =====
+function showView(view){
+  document.getElementById("dashboard").classList.add("hidden");
+  document.getElementById("lesson").classList.add("hidden");
+  document.getElementById("resources").classList.add("hidden");
+
+  document.getElementById(view).classList.remove("hidden");
+}
+
+// ===== 渲染課程 =====
+function renderCourses(){
+  const el = document.getElementById("courses");
+  el.innerHTML = lessons.map(l=>{
+    let done = (progress[l.id]||[]).length;
+    let percent = Math.round(done/l.tasks.length*100||0);
+
+    return `
+    <div class="card bg-slate-800 p-4 rounded cursor-pointer transition border border-slate-700"
+      onclick="openLesson('${l.id}')">
+      <h3 class="text-xl font-bold">${l.title}</h3>
+      <p class="text-slate-400">${l.desc}</p>
+      <div class="mt-2 text-sm">${done}/${l.tasks.length}</div>
+      <div class="bg-slate-700 h-2 mt-1 rounded">
+        <div class="bg-blue-500 h-2 rounded" style="width:${percent}%"></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ===== 打開課程 =====
+function openLesson(id){
+  const l = lessons.find(x=>x.id===id);
+  const done = progress[id]||[];
+
+  document.getElementById("lessonContent").innerHTML = `
+  <h2 class="text-2xl font-bold mb-4">${l.title}</h2>
+
+  <pre><code class="language-java">${l.code}</code></pre>
+
+  <h3 class="mt-4 mb-2">任務</h3>
+  ${l.tasks.map(t=>`
+    <div>
+      <input type="checkbox"
+        ${done.includes(t)?"checked":""}
+        onchange="toggleTask('${id}','${t}')">
+      ${t}
+    </div>
+  `).join("")}
+  `;
+
+  hljs.highlightAll();
+  showView("lesson");
+}
+
+// ===== 勾選任務 =====
+function toggleTask(id,task){
+  if(!progress[id]) progress[id]=[];
+
+  const i = progress[id].indexOf(task);
+  if(i>-1) progress[id].splice(i,1);
+  else progress[id].push(task);
+
+  localStorage.setItem("progress",JSON.stringify(progress));
+  openLesson(id);
+  renderCourses();
+}
+
+// 初始化
+renderCourses();
+
+</script>
+
+</body>
+</html>
