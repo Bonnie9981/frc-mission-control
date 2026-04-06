@@ -3,272 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRC Mission Control v8 | 新手孵化器</title>
+    <title>FRC Mission Control v9 | Engineer Awakening</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #0f172a; color: #e2e8f0; font-family: sans-serif; }
-        .step-card { background: #1e293b; border: 1px solid #334155; transition: 0.3s; }
-        .step-card:hover { border-color: #3b82f6; }
-        .progress-fill { transition: width 0.5s ease-in-out; }
-        .completed-text { text-decoration: line-through; color: #64748b; }
-        .locked { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background: #020617; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
+        .eng-card { background: #0f172a; border-left: 4px solid #334155; transition: 0.3s; }
+        .eng-card:hover { border-left-color: #3b82f6; background: #1e293b; }
+        .debug-box { background: #450a0a; border: 1px solid #991b1b; padding: 10px; font-size: 0.8rem; color: #fca5a5; }
+        .logic-tag { background: #1e3a8a; color: #bfdbfe; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
+        .action-tag { background: #064e3b; color: #a7f3d0; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
+        .completed { opacity: 0.5; border-left-color: #10b981 !important; }
     </style>
 </head>
-<body class="pb-20">
+<body class="p-4 md:p-8">
 
-<nav class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
-    <div class="max-w-5xl mx-auto flex justify-between items-center">
+    <nav class="max-w-5xl mx-auto mb-8 flex justify-between items-center border-b border-slate-800 pb-4">
         <div>
-            <span class="text-blue-400 font-bold text-xl">🚀 FRC 新手村</span>
-            <span id="navHint" class="hidden md:inline text-xs text-slate-500 ml-4">準備開始你的機器人專案...</span>
+            <h1 class="text-2xl font-black tracking-tighter text-blue-500 underline decoration-double">MISSION_CONTROL_v9</h1>
+            <p class="text-xs text-slate-500 uppercase">Status: Engineering Mode Active</p>
         </div>
-        <div id="userTag" class="text-sm font-mono text-slate-400"></div>
-    </div>
-</nav>
-
-<div class="p-6 max-w-5xl mx-auto">
-
-    <div id="login" class="flex flex-col items-center py-20">
-        <h1 class="text-4xl font-bold mb-4">歡迎加入 FRC 團隊</h1>
-        <p class="text-slate-400 mb-8 text-center">這個系統將帶領你從零開始，直到寫出第一個機器人程式。</p>
-        <div class="bg-slate-800 p-6 rounded-xl w-full max-w-sm shadow-xl">
-            <input id="username" class="w-full bg-slate-900 border border-slate-700 p-3 rounded mb-4 text-white" placeholder="請輸入你的名字...">
-            <button onclick="boot()" class="w-full bg-blue-600 hover:bg-blue-500 font-bold py-3 rounded text-lg transition">開始學習之旅</button>
+        <div id="progressStatus" class="text-right text-sm">
+            <span class="text-slate-500 font-bold">系統完整度:</span>
+            <span id="completionRate" class="text-blue-400 font-black">0%</span>
         </div>
-    </div>
+    </nav>
 
-    <div id="app" class="hidden space-y-8">
+    <main class="max-w-5xl mx-auto space-y-12">
         
-        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 flex items-center justify-between">
-            <div>
-                <h2 class="text-lg font-bold">你的修煉進度</h2>
-                <p class="text-xs text-slate-400">完成所有任務即可獲得「Rookie 認證」</p>
+        <section id="curriculum" class="space-y-6">
+            </section>
+
+    </main>
+
+    <div id="debugModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-red-900 p-8 rounded-xl max-w-lg w-full shadow-2xl">
+            <h2 class="text-red-500 font-bold text-xl mb-4 flex items-center">
+                <span class="mr-2">⚠</span> 系統警報：編譯失敗 (Build Failed)
+            </h2>
+            <div class="debug-box mb-6">
+                <code>> Task :compileJava FAILED<br>Robot.java:25: error: ';' expected<br>  PWMVictorSPX m_left = new PWMVictorSPX(0)<br>                                          ^</code>
             </div>
-            <div class="text-right">
-                <span id="totalPercent" class="text-2xl font-black text-blue-400">0%</span>
-            </div>
+            <p class="text-sm text-slate-400 mb-6">這是在 FRC 最常見的錯誤之一。請告訴教練，你觀察到了什麼？該如何修正？</p>
+            <input id="debugAnswer" class="w-full bg-slate-950 border border-slate-700 p-3 rounded mb-4 outline-none focus:border-red-500" placeholder="輸入你的修正方案...">
+            <button onclick="solveDebug()" class="w-full bg-red-700 hover:bg-red-600 font-bold py-3 rounded transition uppercase">提交修正指令</button>
         </div>
-
-        <div id="courseMap" class="grid gap-6">
-            </div>
-
     </div>
-
-    <div id="lessonDetail" class="hidden animate-in fade-in duration-300">
-        <button onclick="showMain()" class="mb-6 text-blue-400 flex items-center">← 返回清單</button>
-        <div id="detailContent"></div>
-    </div>
-
-</div>
 
 <script>
-// ===== 任務極細化資料庫 (v8 修訂版) =====
-const content = [
+// ===== 工程師修煉資料庫 (v9 重製) =====
+const missions = [
     {
         id: "m0",
-        title: "Mission 0: 裝備點收 (環境建置)",
-        difficulty: "🟢 Rookie",
-        hint: "你要先有工具，才能蓋出大樓。這關我們要把軟體裝好。",
-        quizType: "choice",
-        quizQ: "在 FRC 程式開發中，我們主要使用哪一個編輯器？",
-        options: ["Notepad++", "VS Code (WPILib 版)", "Word"],
-        answer: 1, 
+        title: "Phase 0: 建立通訊與環境",
+        description: "目標：不只是安裝軟體，而是理解『程式如何變成動作』。",
         tasks: [
-            "下載並安裝 Java JDK 17",
-            "下載 WPILib Installer (官方提供)",
-            "執行安裝程式 (選擇 Everything)",
-            "桌面出現一個紅色的 202X WPILib VS Code",
-            "開啟該軟體，確認右上方有個小紅 W 圖標",
-            "點擊紅 W，選擇 'Create a new project'",
-            "專案模板選擇 'Timed Robot' (Java)",
-            "按下 Build Project，確認底部顯示 'BUILD SUCCESSFUL'"
-        ]
+            { type: "action", text: "下載並安裝 WPILib Installer (包含所有工具集)" },
+            { type: "logic", text: "🧠 理解：為什麼要安裝 JDK？(Java 是編譯語言，JDK 是你的翻譯官)" },
+            { type: "action", text: "建立 TimedRobot 專案並點擊 Build (確認輸出視窗出現 BUILD SUCCESSFUL)" },
+            { type: "debug", text: "💥 故意刪掉 Robot.java 第 25 行末的分號，再次 Build，觀察錯誤訊息" },
+            { type: "logic", text: "🧠 思考：當看到 'error: ; expected' 時，你應該檢查哪裡？" }
+        ],
+        quiz: {
+            q: "Build Success 代表什麼？",
+            a: "程式語法正確且已轉成機器碼"
+        }
     },
     {
         id: "m1",
-        title: "Mission 1: 機器人的邏輯 (Java 基礎)",
-        difficulty: "🔵 Basic",
-        hint: "學習如何跟機器人溝通。我們要練習基本的語法。",
-        quizType: "input",
-        quizQ: "在 Java 中，如果要儲存一個馬達的埠號（整數），變數型態要用什麼？",
-        quizKey: "int",
+        title: "Phase 1: 變數與電控邏輯",
+        description: "目標：理解程式中的數值如何對應到現實世界的馬達埠號。",
         tasks: [
-            "在 Robot.java 裡找到 robotInit()",
-            "練習宣告一個整數變數：int motorID = 1;",
-            "練習寫一個 if 判斷式",
-            "理解什麼是 double (用於馬達速度 -1.0 ~ 1.0)",
-            "在代碼中加入註解 // 這是一行註解",
-            "成功完成一次代碼編譯 (Build)"
-        ]
-    },
-    {
-        id: "m2",
-        title: "Mission 2: PID 穩定控制",
-        difficulty: "🟣 Advanced",
-        hint: "讓機器人動得精準。這需要閱讀文檔來理解原理。",
-        quizType: "doc",
-        quizQ: "請點開官方文檔，找到關於 'P' (Proportional) 的描述並貼上一小段原文：",
-        docUrl: "https://docs.wpilib.org/en/stable/docs/software/advanced-controls/introduction/introduction-to-pid.html",
-        quizKey: "proportional",
-        tasks: [
-            "在專案中新增一個 PIDController 物件",
-            "將 Encoder (編碼器) 的數值傳給 PID",
-            "在 SmartDashboard 上顯示當前數值",
-            "調整 kP 值，讓馬達精準轉動 90 度",
-            "錄影並向 Mentor 展示你的機器人不會震盪"
-        ]
+            { type: "action", text: "在 Constants.java 定義一個變數 kLeftMotorPort = 0" },
+            { type: "logic", text: "🧠 理解：為什麼埠號不能隨便改？(硬體接線決定了程式的數字)" },
+            { type: "action", text: "練習撰寫 if (joystick.getRawButton(1)) 邏輯" },
+            { type: "debug", text: "💥 嘗試將埠號設為 -1 並編譯，觀察機器人的反應或報錯訊息" },
+            { type: "action", text: "在代碼中加入 System.out.println 印出搖桿數值，觀察終端機" }
+        ],
+        quiz: {
+            q: "為什麼要把埠號寫在 Constants.java 而不是直接寫在 Robot.java？",
+            a: "方便統一管理與避免硬編碼錯誤"
+        }
     }
 ];
 
-let user = localStorage.getItem("v8_user");
-let progress = JSON.parse(localStorage.getItem("v8_progress") || "{}");
+let progress = JSON.parse(localStorage.getItem("v9_data") || "{}");
+let currentDebugMission = null;
 
-function boot() {
-    user = document.getElementById("username").value;
-    if(!user) return alert("請輸入名字，讓我們認識你！");
-    localStorage.setItem("v8_user", user);
-    init();
-}
+function render() {
+    const container = document.getElementById("curriculum");
+    let total = 0;
+    let done = 0;
 
-function init() {
-    document.getElementById("login").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    document.getElementById("userTag").innerText = `你好，${user}！`;
-    renderMain();
-}
-
-if(user) init();
-
-function renderMain() {
-    const map = document.getElementById("courseMap");
-    let totalTasks = 0;
-    let completedTasks = 0;
-
-    map.innerHTML = content.map((m, idx) => {
-        const p = progress[m.id] || { quiz: false, tasks: [] };
-        const isLocked = idx > 0 && !progress[content[idx-1].id]?.quiz;
-        totalTasks += m.tasks.length;
-        completedTasks += p.tasks.length;
-
+    container.innerHTML = missions.map(m => {
+        const p = progress[m.id] || { tasks: [], quiz: false };
+        
         return `
-        <div class="step-card p-6 rounded-xl cursor-pointer ${isLocked ? 'locked' : ''}" onclick="openDetail('${m.id}')">
-            <div class="flex justify-between items-start mb-2">
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">${m.difficulty}</span>
-                <span class="text-xs text-slate-500">${p.tasks.length}/${m.tasks.length} 已完成</span>
-            </div>
-            <h3 class="text-xl font-bold mb-2">${m.title}</h3>
-            <p class="text-sm text-slate-400 mb-4">${m.hint}</p>
-            <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
-                <div class="bg-blue-500 h-full progress-fill" style="width: ${(p.tasks.length/m.tasks.length)*100}%"></div>
-            </div>
-            ${isLocked ? '<p class="text-xs text-red-500 mt-2 font-bold italic">🔒 請先完成前一項 Mission 的 Quiz</p>' : ''}
-        </div>`;
-    }).join("");
-
-    document.getElementById("totalPercent").innerText = Math.round((completedTasks/totalTasks)*100) + "%";
-}
-
-function openDetail(id) {
-    const m = content.find(x => x.id === id);
-    const p = progress[id] || { quiz: false, tasks: [] };
-    
-    document.getElementById("app").classList.add("hidden");
-    document.getElementById("lessonDetail").classList.remove("hidden");
-    
-    let quizHtml = "";
-    if (m.quizType === "choice") {
-        quizHtml = m.options.map((opt, i) => `
-            <button onclick="checkQuiz('${id}', ${i})" class="w-full text-left bg-slate-900 p-3 rounded border border-slate-700 hover:border-blue-500 mb-2 transition">
-                ${String.fromCharCode(65+i)}. ${opt}
-            </button>
-        `).join("");
-    } else {
-        quizHtml = `
-            <p class="text-xs text-slate-500 mb-2">${m.quizType === 'doc' ? '請參考連結：<a href="'+m.docUrl+'" target="_blank" class="text-blue-400 underline">官方文檔</a>' : '提示：這是一個專業術語'}</p>
-            <textarea id="quizInput" class="w-full bg-slate-900 border border-slate-700 p-3 rounded mb-2 h-24 text-white" placeholder="在此輸入內容..."></textarea>
-            <button onclick="checkQuiz('${id}')" class="w-full bg-blue-600 py-2 rounded font-bold">提交驗證</button>
-        `;
-    }
-
-    document.getElementById("detailContent").innerHTML = `
-        <div class="space-y-8">
-            <div class="bg-blue-900/20 border border-blue-500/50 p-6 rounded-xl">
-                <h2 class="text-2xl font-bold mb-2">${m.title}</h2>
-                <p class="text-slate-300">👉 目前目標：${m.hint}</p>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-8">
-                <div class="bg-slate-800 p-6 rounded-xl">
-                    <h3 class="font-bold text-yellow-500 mb-4 tracking-tighter uppercase">第一步：解鎖任務 (Quiz)</h3>
-                    <p class="text-sm mb-4">${m.quizQ}</p>
-                    <div id="quizArea">${p.quiz ? '<p class="text-green-400 font-bold">✅ 已通過認證，任務已解鎖！</p>' : quizHtml}</div>
+        <div class="space-y-4">
+            <div class="flex items-end justify-between">
+                <div>
+                    <h2 class="text-xl font-black text-blue-400 uppercase">${m.title}</h2>
+                    <p class="text-xs text-slate-500 italic">${m.description}</p>
                 </div>
+                <div class="text-[10px] bg-slate-800 px-2 py-1 rounded">DECODED: ${p.tasks.length}/${m.tasks.length}</div>
+            </div>
 
-                <div class="bg-slate-800 p-6 rounded-xl ${!p.quiz ? 'opacity-20 pointer-events-none' : ''}">
-                    <h3 class="font-bold text-blue-400 mb-4 tracking-tighter uppercase">第二步：動手實作</h3>
-                    <div class="space-y-3">
-                        ${m.tasks.map(t => `
-                            <label class="flex items-center space-x-3 p-2 hover:bg-slate-900 rounded cursor-pointer transition">
-                                <input type="checkbox" class="w-5 h-5 rounded accent-blue-500" 
-                                    ${p.tasks.includes(t) ? 'checked' : ''} 
-                                    onchange="toggleTask('${id}', '${t}')">
-                                <span class="${p.tasks.includes(t) ? 'completed-text' : ''} text-sm">${t}</span>
-                            </label>
-                        `).join("")}
-                    </div>
-                </div>
+            <div class="grid gap-2">
+                ${m.tasks.map((t, i) => {
+                    total++;
+                    const isDone = p.tasks.includes(i);
+                    if(isDone) done++;
+                    
+                    let tag = "";
+                    let clickAction = `onclick="toggleTask('${m.id}', ${i}, '${t.type}')"`;
+                    
+                    if(t.type === "logic") tag = '<span class="logic-tag">LOGIC</span>';
+                    if(t.type === "action") tag = '<span class="action-tag">ACTION</span>';
+                    if(t.type === "debug") tag = '<span class="bg-red-900 text-red-200 text-[10px] px-2 rounded">DEBUG</span>';
+
+                    return `
+                    <div class="eng-card p-4 rounded flex items-center justify-between cursor-pointer ${isDone ? 'completed' : ''}" ${clickAction}>
+                        <div class="flex items-center space-x-3 text-sm">
+                            <div class="w-4 h-4 border border-slate-600 rounded flex items-center justify-center text-[10px]">
+                                ${isDone ? '✔' : ''}
+                            </div>
+                            <div>${tag} <span class="ml-2">${t.text}</span></div>
+                        </div>
+                    </div>`;
+                }).join("")}
+            </div>
+
+            <div class="p-4 bg-slate-900/50 border border-dashed border-slate-700 rounded text-center">
+                <p class="text-xs text-slate-500 mb-2">Phase Verification Required</p>
+                ${p.quiz ? 
+                    '<span class="text-green-500 font-bold text-sm italic">>>> VERIFIED BY COACH</span>' : 
+                    `<button onclick="verifyPhase('${m.id}')" class="text-xs bg-blue-900/30 text-blue-400 border border-blue-800 px-4 py-1 rounded hover:bg-blue-800 hover:text-white transition">點此進行階段認證</button>`
+                }
             </div>
         </div>
-    `;
+        `;
+    }).join("");
+
+    document.getElementById("completionRate").innerText = Math.round((done/total)*100) + "%";
 }
 
-function checkQuiz(id, choiceIdx = null) {
-    const m = content.find(x => x.id === id);
-    if (!progress[id]) progress[id] = { quiz: false, tasks: [] };
-
-    if (m.quizType === "choice") {
-        if (choiceIdx === m.answer) {
-            progress[id].quiz = true;
-            alert("✅ 選對了！你是天才！");
-        } else {
-            return alert("❌ 哎呀，再想一下？");
-        }
-    } else {
-        const input = document.getElementById("quizInput").value.toLowerCase().trim();
-        if (input.includes(m.quizKey)) {
-            progress[id].quiz = true;
-            alert("✅ 關鍵字正確，解鎖成功！");
-        } else {
-            return alert("❌ 關鍵字沒對上喔，再檢查一下文檔！");
-        }
+function toggleTask(mId, tIdx, type) {
+    if(type === "debug" && !progress[mId]?.tasks.includes(tIdx)) {
+        currentDebugMission = { mId, tIdx };
+        document.getElementById("debugModal").classList.remove("hidden");
+        return;
     }
+
+    if(!progress[mId]) progress[mId] = { tasks: [], quiz: false };
+    const taskIdx = progress[mId].tasks.indexOf(tIdx);
+    
+    if(taskIdx === -1) progress[mId].tasks.push(tIdx);
+    else progress[mId].tasks.splice(taskIdx, 1);
+    
     save();
-    openDetail(id);
 }
 
-function toggleTask(id, t) {
-    if (!progress[id].tasks.includes(t)) {
-        progress[id].tasks.push(t);
+function solveDebug() {
+    const ans = document.getElementById("debugAnswer").value.toLowerCase();
+    if(ans.includes("分號") || ans.includes(";") || ans.includes("semicolon")) {
+        const { mId, tIdx } = currentDebugMission;
+        if(!progress[mId]) progress[mId] = { tasks: [], quiz: false };
+        progress[mId].tasks.push(tIdx);
+        save();
+        document.getElementById("debugModal").classList.add("hidden");
+        document.getElementById("debugAnswer").value = "";
+        alert("教練：正確！在 Java 裡，分號就是這行指令的句點。少了一個，編譯器就看不懂了。");
     } else {
-        progress[id].tasks = progress[id].tasks.filter(item => item !== t);
+        alert("教練：答案不對，再看一次報錯訊息！它說 expected 了什麼？");
     }
-    save();
-    renderMain();
 }
 
-function showMain() {
-    document.getElementById("lessonDetail").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    renderMain();
+function verifyPhase(mId) {
+    const m = missions.find(x => x.id === mId);
+    const ans = prompt(`【階段認證】\n問題：${m.quiz.q}`);
+    
+    if(ans && ans.length > 5) {
+        progress[mId].quiz = true;
+        save();
+        alert("教練：認證成功。記住，不只要會寫 code，還要知道 code 背後的理由。");
+    } else {
+        alert("教練：解釋得太敷衍了，請重新思考後再回答。");
+    }
 }
 
 function save() {
-    localStorage.setItem("v8_progress", JSON.stringify(progress));
+    localStorage.setItem("v9_data", JSON.stringify(progress));
+    render();
 }
 
-function renderRank() {
-    // 這裡可以擴展排行榜邏輯
-}
+// 啟動
+render();
 </script>
 
 </body>
