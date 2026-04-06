@@ -3,159 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRC Mission Control Pro</title>
+    <title>FRC Mission Control v7 | Titan Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .card:hover { transform: translateY(-3px); border-color: #3b82f6; transition: all 0.3s; }
-        .locked { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background: #020617; color: #f8fafc; font-family: 'JetBrains+Mono', monospace; }
+        .titan-card { background: linear-gradient(145deg, #0f172a, #1e293b); border: 1px solid #334155; transition: 0.2s; }
+        .titan-card:hover { border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+        .status-pill { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
+        .locked { filter: blur(2px) grayscale(1); pointer-events: none; opacity: 0.5; }
+        .pit-stress { animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
-<body>
+<body class="min-h-screen">
 
-<div id="login" class="flex flex-col items-center justify-center h-screen space-y-6">
-    <div class="text-6xl">🤖</div>
-    <h1 class="text-4xl font-black text-blue-400 tracking-tighter">MISSION CONTROL</h1>
-    <div class="glass p-8 rounded-2xl shadow-2xl flex flex-col w-80">
-        <input id="username" class="bg-slate-900 border border-slate-700 p-3 rounded-lg mb-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="輸入隊員代號...">
-        <button onclick="login()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-900/20">啟動系統</button>
+<nav class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50 p-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <span class="text-2xl italic font-black text-blue-500">TITAN-v7</span>
+            <div class="h-4 w-[1px] bg-slate-700"></div>
+            <span id="timerDisplay" class="text-red-500 font-bold hidden pit-stress uppercase">Pits Time: 15:00</span>
+        </div>
+        <div class="flex space-x-6 text-sm">
+            <button onclick="showView('dashboard')" class="hover:text-blue-400">基地</button>
+            <button onclick="showView('debug')" class="hover:text-blue-400">資產庫(Debug)</button>
+            <button onclick="showView('rank')" class="hover:text-blue-400">戰功</button>
+        </div>
+        <div id="userTag" class="text-xs bg-blue-900/50 text-blue-300 px-3 py-1 rounded border border-blue-800"></div>
     </div>
-</div>
+</nav>
 
-<div id="app" class="hidden min-h-screen">
-    <nav class="bg-slate-900/80 sticky top-0 z-50 backdrop-blur-md border-b border-slate-800 p-4 flex justify-between items-center">
-        <div class="flex items-center space-x-2">
-            <span class="text-2xl">🚀</span>
-            <span class="font-bold text-xl tracking-tight text-blue-400">FRC <span class="text-white">PRO</span></span>
-        </div>
-        <div class="flex space-x-6 font-medium">
-            <button onclick="showView('dashboard')" class="hover:text-blue-400 transition">課程基地</button>
-            <button onclick="showView('debug')" class="hover:text-blue-400 transition">維修日誌</button>
-            <button onclick="showView('rank')" class="hover:text-blue-400 transition">功勳榜</button>
-        </div>
-        <div id="userDisplay" class="text-sm bg-slate-800 px-3 py-1 rounded-full border border-slate-700 text-slate-400"></div>
-    </nav>
+<div class="p-6 max-w-7xl mx-auto">
 
-    <div class="p-6 max-w-7xl mx-auto">
-        <div id="dashboard" class="space-y-6">
-            <header class="flex justify-between items-end">
-                <div>
-                    <h2 class="text-3xl font-bold">訓練路線圖</h2>
-                    <p class="text-slate-400">完成技術認證以解鎖高階課程</p>
-                </div>
-            </header>
-            <div id="courses" class="grid lg:grid-cols-3 md:grid-cols-2 gap-6"></div>
+    <div id="login" class="flex flex-col items-center py-20">
+        <h1 class="text-5xl font-black mb-8 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">FRC TITAN CONTROL</h1>
+        <div class="bg-slate-900 border border-slate-800 p-8 rounded-xl w-96 shadow-2xl">
+            <label class="text-xs text-slate-500 mb-2 block">隊員代號 / 名字</label>
+            <input id="username" class="w-full bg-slate-950 border border-slate-700 p-3 rounded mb-4 focus:border-blue-500 outline-none">
+            <button onclick="bootSystem()" class="w-full bg-blue-600 hover:bg-blue-500 font-bold py-3 rounded transition uppercase tracking-widest">初始化系統</button>
         </div>
+    </div>
 
-        <div id="lesson" class="hidden animate-in fade-in duration-500">
-            <button onclick="showView('dashboard')" class="mb-6 text-blue-400 flex items-center hover:underline">
-                <span class="mr-2">←</span> 返回作戰中心
-            </button>
+    <div id="app" class="hidden">
+        
+        <div id="dashboard" class="grid md:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-500">
+            </div>
+
+        <div id="lesson" class="hidden max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="showView('dashboard')" class="text-slate-500 hover:text-white">← BACK TO BASE</button>
+                <div id="stressBtn" class="bg-red-900/20 text-red-500 border border-red-900 px-4 py-1 rounded cursor-pointer hover:bg-red-900/40 transition" onclick="togglePitMode()">⚡ 開啟 PITS 壓力模式</div>
+            </div>
             <div id="lessonContent"></div>
         </div>
 
-        <div id="debug" class="hidden space-y-6">
-            <h2 class="text-3xl font-bold">🧾 Debug 紀錄庫</h2>
-            <div class="glass p-6 rounded-xl grid grid-cols-1 md:grid-cols-4 gap-4">
-                <select id="bugType" class="bg-slate-900 p-2 rounded border border-slate-700">
-                    <option>💻 程式</option>
-                    <option>⚡ 電控</option>
-                    <option>🔧 機構</option>
-                </select>
-                <input id="bug" placeholder="發現什麼問題？" class="bg-slate-900 p-2 rounded border border-slate-700 md:col-span-1">
-                <input id="fix" placeholder="最後怎麼解決的？" class="bg-slate-900 p-2 rounded border border-slate-700 md:col-span-1">
-                <button onclick="addDebug()" class="bg-green-600 hover:bg-green-500 rounded font-bold transition">提交紀錄</button>
+        <div id="debug" class="hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold">🛠️ 團隊技術資產 (Debug Logs)</h2>
+                <button onclick="exportLogs()" class="text-xs bg-slate-800 px-3 py-1 rounded">匯出紀錄 (JSON)</button>
             </div>
-            <div id="debugList" class="space-y-3"></div>
+            <div id="debugInputArea" class="bg-slate-900 border border-slate-800 p-6 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input id="bugDesc" placeholder="遇到的錯誤 (例如：Robot Code Error)" class="bg-slate-950 border border-slate-700 p-2 rounded">
+                <input id="fixDesc" placeholder="解決方法 (例如：檢查 CAN ID 衝突)" class="bg-slate-950 border border-slate-700 p-2 rounded">
+                <button onclick="saveDebugLog()" class="bg-green-600 font-bold rounded">存入資產庫</button>
+            </div>
+            <div id="debugContainer" class="space-y-2 text-sm"></div>
         </div>
 
-        <div id="rank" class="hidden">
-            <h2 class="text-3xl font-bold mb-6 text-center text-yellow-400">🏆 戰功排行榜</h2>
-            <div id="rankList" class="max-w-md mx-auto space-y-4"></div>
+        <div id="rank" class="hidden max-w-md mx-auto">
+            <h2 class="text-center text-3xl font-black mb-8 text-blue-500">🏆 隊伍戰績榜</h2>
+            <div id="rankContainer" class="space-y-3"></div>
         </div>
     </div>
 </div>
 
 <script>
-// ===== 核心數據 =====
+// ===== 核心數據結構 (教練級：強化 Quiz & 任務) =====
 const lessons = [
     {
         id: "setup",
-        title: "Mission 0: 開發環境",
-        level: "🟢 Rookie",
+        title: "Mission 0: 環境建置",
+        level: "Rookie",
         doc: "https://docs.wpilib.org/en/stable/docs/zero-to-robot/step-2/getting-started-with-vscode.html",
-        quizQ: "在文檔中，WPILib Installer 建議安裝在哪個系統？",
-        quizA: "windows",
-        tasks: ["安裝 VSCode 2026", "安裝 WPILib 套件", "建立 TimedRobot 範例"]
+        quizQ: "請從文件中找出描述 WPILib 的定義句並貼上（必須包含『software library』關鍵字）：",
+        quizKey: "software library",
+        tasks: ["[ ] 安裝 VSCode 2026", "[ ] 通過 WPILib Installer 驗證", "[ ] 成功建立第一個 TimedRobot 專案"]
     },
     {
         id: "basic",
-        title: "Mission 1: Java 控制流",
-        level: "🔵 基礎",
+        title: "Mission 1: 基礎馬達控制",
+        level: "Basic",
         doc: "https://docs.wpilib.org/en/stable/docs/software/basic-programming/java-basics.html",
-        quizQ: "宣告一個整數變數的關鍵字是？",
-        quizA: "int",
-        tasks: ["寫出變數賦值", "實作 Joystick 按鈕判斷", "Deploy 程式到機器人"]
+        quizQ: "請貼上文檔中關於變數宣告 (Variables) 的原文說明：",
+        quizKey: "variable",
+        tasks: ["[ ] 實作 Joystick 讀取", "[ ] 驅動馬達轉動", "[ ] 設定馬達反向 (Inverted) 邏輯"]
     },
     {
-        id: "adv",
-        title: "Mission 2: PID 閉迴圈控制",
-        level: "🟣 進階",
+        id: "pid",
+        title: "Mission 2: PID 穩定器",
+        level: "Advanced",
         doc: "https://docs.wpilib.org/en/stable/docs/software/advanced-controls/introduction/introduction-to-pid.html",
-        quizQ: "PID 中代表『消除穩態誤差』的是哪一項 (P/I/D)？",
-        quizA: "i",
-        tasks: ["撰寫 PIDController 物件", "調整 kP 參數直到不震盪", "整合 Encoder 數據"]
+        quizQ: "找出文件中關於 Proportional (P) 的具體公式或定義並貼上：",
+        quizKey: "proportional",
+        tasks: ["[ ] 實作 PIDController 物件", "[ ] 通過 Dashboard 調整 kP 直到震盪消失", "[ ] 錄影展示精準停在目標位置"]
     }
 ];
 
-let user = localStorage.getItem("user");
-let progress = JSON.parse(localStorage.getItem("progress") || "{}");
+let user = localStorage.getItem("titan_user");
+let progress = JSON.parse(localStorage.getItem("titan_progress") || "{}");
+let debugLogs = JSON.parse(localStorage.getItem("titan_debug") || "[]");
+let timer = null;
 
-// ===== 系統邏輯 =====
-function login() {
+// ===== 系統初始化 =====
+function bootSystem() {
     user = document.getElementById("username").value;
-    if(!user) return alert("請輸入名號！");
-    localStorage.setItem("user", user);
-    startApp();
+    if(!user) return alert("隊長：請輸入隊員代碼才能進入基地。");
+    localStorage.setItem("titan_user", user);
+    initApp();
 }
 
-function startApp() {
+function initApp() {
     document.getElementById("login").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
-    document.getElementById("userDisplay").innerText = `當前隊員：${user}`;
-    renderCourses();
+    document.getElementById("userTag").innerText = `Operator: ${user}`;
+    renderDashboard();
     renderDebug();
-    renderRank();
 }
 
-if(user) startApp();
+if(user) initApp();
 
+// ===== UI 渲染 =====
 function showView(v) {
     ["dashboard", "lesson", "debug", "rank"].forEach(id => document.getElementById(id).classList.add("hidden"));
     document.getElementById(v).classList.remove("hidden");
+    if(v === 'rank') renderRank();
 }
 
-function renderCourses() {
-    const el = document.getElementById("courses");
+function renderDashboard() {
+    const el = document.getElementById("dashboard");
     el.innerHTML = lessons.map(l => {
-        const isLocked = l.level.includes("進階") && !progress["basic"]?.quiz;
-        const doneCount = (progress[l.id]?.tasks || []).length;
-        const percent = Math.round((doneCount / l.tasks.length) * 100);
+        const isLocked = l.level === "Advanced" && (!progress["basic"] || progress["basic"].tasks.length < 3);
+        const done = (progress[l.id]?.tasks || []).length;
+        const total = l.tasks.length;
+        const color = l.level === "Rookie" ? "text-green-400" : (l.level === "Basic" ? "text-blue-400" : "text-purple-400");
         
         return `
-        <div class="glass p-6 rounded-2xl card cursor-pointer ${isLocked ? 'locked' : ''}" onclick="openLesson('${l.id}')">
-            <div class="flex justify-between items-start mb-4">
-                <span class="text-xs font-bold px-2 py-1 bg-slate-800 rounded text-blue-400">${l.level}</span>
-                ${isLocked ? '<span>🔒</span>' : '<span class="text-green-500">🔓</span>'}
+        <div class="titan-card p-6 rounded-xl cursor-pointer ${isLocked ? 'locked' : ''}" onclick="openLesson('${l.id}')">
+            <div class="flex justify-between items-center mb-4">
+                <span class="status-pill border border-slate-700 ${color}">${l.level}</span>
+                <span class="text-xs text-slate-500">${done}/${total} COMPLETED</span>
             </div>
-            <h3 class="text-xl font-bold mb-2">${l.title}</h3>
-            <div class="w-full bg-slate-800 h-2 rounded-full mt-4">
-                <div class="bg-blue-500 h-2 rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+            <h3 class="text-xl font-bold mb-4 tracking-tight">${l.title}</h3>
+            <div class="bg-slate-950 h-1 w-full rounded-full overflow-hidden">
+                <div class="bg-blue-500 h-full transition-all" style="width: ${(done/total)*100}%"></div>
             </div>
-            <p class="text-xs text-slate-500 mt-2">進度：${percent}%</p>
         </div>`;
     }).join("");
 }
@@ -165,106 +167,134 @@ function openLesson(id) {
     const p = progress[id] || { quiz: false, tasks: [] };
     
     document.getElementById("lessonContent").innerHTML = `
-    <div class="grid lg:grid-cols-2 gap-8">
-        <div class="space-y-4">
-            <div class="glass p-4 rounded-xl">
-                <h3 class="font-bold mb-2 flex items-center"><span class="mr-2">📖</span> 官方文檔對照</h3>
-                <iframe src="${l.doc}" class="w-full h-[500px] rounded-lg border border-slate-700 bg-white"></iframe>
-            </div>
-        </div>
         <div class="space-y-6">
-            <div class="glass p-6 rounded-xl border-l-4 border-yellow-500">
-                <h3 class="text-lg font-bold mb-4 text-yellow-400">知識驗證 Quiz</h3>
-                <p class="text-sm text-slate-400 mb-3">${l.quizQ}</p>
-                <div class="flex space-x-2">
-                    <input id="qInput" class="bg-slate-900 border border-slate-700 p-2 rounded flex-grow text-white" placeholder="輸入關鍵字...">
-                    <button onclick="checkQuiz('${id}', '${l.quizA}')" class="bg-yellow-600 px-6 py-2 rounded font-bold">提交</button>
+            <div class="grid md:grid-cols-2 gap-6 text-sm">
+                <div class="bg-blue-900/10 border border-blue-800/50 p-6 rounded-xl">
+                    <h4 class="font-bold text-blue-400 mb-4 tracking-widest uppercase">Step 1: 文檔檢索與取證</h4>
+                    <p class="text-slate-400 mb-4 leading-relaxed">這關的理論知識隱藏在 WPILib 中。請點擊下方連結進入官網，找到指定內容後**「貼上原文」**。</p>
+                    <a href="${l.doc}" target="_blank" class="inline-block bg-blue-600 px-4 py-2 rounded font-bold hover:bg-blue-500 transition mb-4">開啟文檔資料庫 ↗</a>
+                    <p class="mb-2 text-xs text-slate-500">${l.quizQ}</p>
+                    <textarea id="quizInput" class="w-full bg-slate-950 border border-slate-800 p-3 rounded h-24 focus:border-blue-500 outline-none mb-2" placeholder="在此貼上文檔原文..."></textarea>
+                    <button onclick="verifyQuiz('${id}', '${l.quizKey}')" class="w-full bg-slate-800 py-2 rounded hover:bg-slate-700 font-bold transition">驗證取證</button>
+                    ${p.quiz ? '<p class="text-green-500 mt-2 font-bold italic">>>> 認證通過：實作權限已開啟</p>' : ''}
                 </div>
-                ${p.quiz ? '<p class="text-green-400 text-sm mt-3 font-bold">✅ 驗證成功！實作權限已解鎖。</p>' : ''}
-            </div>
-
-            <div class="glass p-6 rounded-xl ${!p.quiz ? 'opacity-20 pointer-events-none' : ''}">
-                <h3 class="text-lg font-bold mb-4 text-blue-400">🛠️ 實作任務 (需 Mentor 現場確認)</h3>
-                ${l.tasks.map(t => `
-                    <div class="flex items-center space-x-3 mb-3 p-3 bg-slate-900/50 rounded-lg border border-slate-800">
-                        <input type="checkbox" class="w-5 h-5 accent-blue-500" ${p.tasks.includes(t) ? 'checked' : ''} onchange="toggleTask('${id}', '${t}')">
-                        <span class="${p.tasks.includes(t) ? 'line-through text-slate-500' : ''}">${t}</span>
+                
+                <div class="${!p.quiz ? 'opacity-20 pointer-events-none' : ''} transition-all duration-500">
+                    <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                        <h4 class="font-bold text-indigo-400 mb-4 tracking-widest uppercase">Step 2: 實戰現場簽核</h4>
+                        <p class="text-xs text-slate-500 mb-4 italic">注意：所有勾選必須在 Mentor 或資深學長姐監督下完成。</p>
+                        ${l.tasks.map(t => `
+                            <div class="flex items-center space-x-3 mb-3 p-3 bg-slate-950 rounded border border-slate-800 hover:border-slate-600 transition">
+                                <input type="checkbox" class="w-5 h-5 accent-blue-500" ${p.tasks.includes(t) ? 'checked' : ''} onchange="signoffTask('${id}', '${t}')">
+                                <span class="${p.tasks.includes(t) ? 'text-blue-300' : 'text-slate-400'}">${t}</span>
+                            </div>
+                        `).join("")}
                     </div>
-                `).join("")}
+                </div>
             </div>
-        </div>
-    </div>`;
-    showView("lesson");
+        </div>`;
+    showView('lesson');
 }
 
-function checkQuiz(id, ans) {
-    const input = document.getElementById("qInput").value.toLowerCase();
-    if(input.includes(ans)) {
+// ===== 核心驗證邏輯 =====
+function verifyQuiz(id, key) {
+    const input = document.getElementById("quizInput").value.toLowerCase();
+    if (input.includes(key.toLowerCase()) && input.length > 15) {
         if(!progress[id]) progress[id] = { quiz: true, tasks: [] };
         else progress[id].quiz = true;
-        save();
-        alert("🎉 完美！你具備了實作的理論基礎。");
+        saveProgress();
+        alert("教練：取證正確。現在去機器人旁邊，開始實作！");
         openLesson(id);
     } else {
-        alert("❌ 答案就在左側文檔中，再仔細看看！");
+        alert("教練：答案太短或關鍵字缺失。別想混過去，去文檔裡找原話貼上！");
     }
 }
 
-function toggleTask(id, t) {
-    if(!progress[id].tasks.includes(t)) progress[id].tasks.push(t);
-    else progress[id].tasks = progress[id].tasks.filter(x => x !== t);
-    save();
-    renderCourses();
+function signoffTask(id, t) {
+    if(!progress[id].tasks.includes(t)) {
+        progress[id].tasks.push(t);
+        // 強制 Debug 紀錄彈窗
+        const bug = prompt("【強制紀錄】這項任務中，你遇到最頭痛的問題是什麼？(不能留空)");
+        const fix = prompt("【強制紀錄】你最後是怎麼解決它的？");
+        if(bug && fix) {
+            debugLogs.unshift({ user, time: new Date().toLocaleTimeString(), bug, fix });
+            saveDebug();
+        }
+    } else {
+        progress[id].tasks = progress[id].tasks.filter(x => x !== t);
+    }
+    saveProgress();
+    renderDashboard();
 }
 
-function addDebug() {
-    const type = document.getElementById("bugType").value;
-    const bug = document.getElementById("bug").value;
-    const fix = document.getElementById("fix").value;
-    if(!bug || !fix) return;
+// ===== Pits 壓力模式 (教練獨家) =====
+function togglePitMode() {
+    const display = document.getElementById("timerDisplay");
+    if(timer) {
+        clearInterval(timer);
+        timer = null;
+        display.classList.add("hidden");
+    } else {
+        let sec = 900; // 15 mins
+        display.classList.remove("hidden");
+        timer = setInterval(() => {
+            sec--;
+            let m = Math.floor(sec/60);
+            let s = sec % 60;
+            display.innerText = `Pits Time: ${m}:${s < 10 ? '0'+s : s}`;
+            if(sec <= 0) {
+                clearInterval(timer);
+                alert("🔴 賽季警報：時間到！機器人必須上場！");
+            }
+        }, 1000);
+    }
+}
 
-    const logs = JSON.parse(localStorage.getItem("debug") || "[]");
-    logs.unshift({ user, type, bug, fix, time: new Date().toLocaleDateString() });
-    localStorage.setItem("debug", JSON.stringify(logs));
+// ===== 資料管理 =====
+function saveProgress() { localStorage.setItem("titan_progress", JSON.stringify(progress)); }
+function saveDebug() { 
+    localStorage.setItem("titan_debug", JSON.stringify(debugLogs)); 
     renderDebug();
 }
 
 function renderDebug() {
-    const logs = JSON.parse(localStorage.getItem("debug") || "[]");
-    document.getElementById("debugList").innerHTML = logs.map(l => `
-    <div class="glass p-4 rounded-lg flex justify-between items-center border-l-2 border-green-500">
-        <div>
-            <span class="text-xs font-mono text-slate-500">${l.time} | ${l.user}</span>
-            <div class="font-bold"><span class="text-blue-400">${l.type}:</span> ${l.bug}</div>
-            <div class="text-sm text-green-400 italic">Solution: ${l.fix}</div>
+    document.getElementById("debugContainer").innerHTML = debugLogs.map(l => `
+        <div class="p-3 bg-slate-900 border border-slate-800 rounded flex justify-between">
+            <div>
+                <span class="text-blue-500 font-bold">[${l.user}]</span> 
+                <span class="text-red-400">Error: ${l.bug}</span> 
+                <span class="text-slate-500">→</span> 
+                <span class="text-green-400">Solution: ${l.fix}</span>
+            </div>
+            <span class="text-slate-600 text-[10px]">${l.time}</span>
         </div>
-    </div>`).join("");
+    `).join("");
 }
 
 function renderRank() {
-    let totalScore = 0;
-    Object.values(progress).forEach(v => totalScore += (v.tasks?.length || 0));
+    let users = {};
+    users[user] = Object.values(progress).reduce((acc, curr) => acc + curr.tasks.length, 0);
     
-    document.getElementById("rankList").innerHTML = `
-    <div class="glass p-6 rounded-2xl flex justify-between items-center border-2 border-yellow-500 shadow-lg shadow-yellow-900/10">
-        <div class="flex items-center space-x-4">
-            <span class="text-3xl">🥇</span>
-            <div>
-                <div class="font-black text-xl">${user}</div>
-                <div class="text-xs text-slate-400 uppercase tracking-widest">Master Technician</div>
+    document.getElementById("rankContainer").innerHTML = Object.entries(users)
+        .sort((a,b) => b[1] - a[1])
+        .map(([name, score]) => `
+            <div class="flex justify-between p-4 bg-slate-900 border-l-4 border-blue-500 rounded">
+                <span class="font-bold">${name}</span>
+                <span class="text-blue-400">${score * 150} EXP</span>
             </div>
-        </div>
-        <div class="text-4xl font-black text-yellow-500">${totalScore * 10}<span class="text-sm ml-1 text-slate-500">pts</span></div>
-    </div>
-    <p class="text-center text-slate-500 text-xs mt-4 italic">排行榜數據同步中 (模擬單機環境)</p>`;
+        `).join("");
 }
 
-function save() {
-    localStorage.setItem("progress", JSON.stringify(progress));
-    renderRank();
+function exportLogs() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(debugLogs));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "FRC_Titan_Logs.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
 }
-
-renderCourses();
 </script>
+
 </body>
 </html>
