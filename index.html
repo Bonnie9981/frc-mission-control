@@ -2,235 +2,314 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>FRC 工程師全實戰 v19 | 從零到比賽</title>
+    <title>FRC Ultimate Nexus v20 | 全整合教學基地</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;900&family=JetBrains+Mono&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background: #0f172a; color: #f8fafc; height: 100vh; overflow: hidden; }
-        .code-editor { background: #000; color: #4ade80; font-family: 'JetBrains Mono', monospace; border: 1px solid #334155; }
-        .step-node { border-left: 4px solid #1e293b; transition: 0.3s; cursor: pointer; }
-        .step-node.active { border-left-color: #3b82f6; background: #1e293b; }
-        .step-node.completed { border-left-color: #22c55e; }
-        .joystick-base { width: 100px; height: 100px; background: #334155; border-radius: 50%; position: relative; }
-        .joystick-stick { width: 40px; height: 40px; background: #64748b; border-radius: 50%; position: absolute; top: 30px; left: 30px; cursor: grab; }
-        .motor-anim { width: 100px; height: 100px; border: 5px dashed #3b82f6; border-radius: 50%; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Noto+Sans+TC:wght@400;700&family=JetBrains+Mono&display=swap');
+        
+        :root { --neon-blue: #00f3ff; --neon-green: #39ff14; --neon-red: #ff003c; --bg-dark: #0a0b10; }
+        body { background: var(--bg-dark); color: #e2e8f0; font-family: 'Noto Sans TC', sans-serif; height: 100vh; overflow: hidden; }
+        .code-font { font-family: 'JetBrains Mono', monospace; }
+        
+        /* 側邊導航 */
+        .nav-item { border-left: 4px solid #1e293b; transition: 0.3s; cursor: pointer; }
+        .nav-item.active { border-left-color: var(--neon-blue); background: rgba(0, 243, 255, 0.1); }
+        .nav-item.locked { opacity: 0.4; cursor: not-allowed; }
+        .nav-item.done::after { content: ' ✓'; color: var(--neon-green); font-weight: bold; }
+
+        /* 模擬器元件 */
+        .motor-rotor { width: 140px; height: 140px; border: 8px solid #1e293b; border-radius: 50%; position: relative; transition: transform 0.1s linear; }
+        .motor-rotor::before { content: ''; position: absolute; top: 0; left: 50%; width: 4px; height: 50%; background: var(--neon-red); transform: translateX(-50%); }
+        
+        .joystick-base { width: 80px; height: 80px; background: #1e293b; border-radius: 50%; position: relative; }
+        .joystick-handle { width: 30px; height: 30px; background: #475569; border-radius: 50%; position: absolute; top: 25px; left: 25px; cursor: grab; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+
+        /* 代碼編輯器 */
+        #editor { background: #000; color: #a5f3fc; border: 1px solid #1e293b; resize: none; outline: none; }
+        .smoke { position: absolute; width: 20px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 50%; filter: blur(10px); opacity: 0; pointer-events: none; }
+        @keyframes rise { 0% { transform: translateY(0) scale(1); opacity: 0.4; } 100% { transform: translateY(-80px) scale(3); opacity: 0; } }
+        .burning { animation: rise 1s infinite; opacity: 1; }
     </style>
 </head>
 <body class="flex flex-col">
 
-    <div id="login-layer" class="fixed inset-0 bg-slate-950 z-[100] flex items-center justify-center">
-        <div class="bg-slate-900 p-10 rounded-2xl border border-slate-800 w-96 text-center">
-            <h1 class="text-2xl font-black mb-6 tracking-tighter">PROJECT_TITAN 登入</h1>
-            <input id="u-name" type="text" placeholder="學員姓名" class="w-full p-3 bg-slate-800 rounded mb-4 outline-none border border-slate-700">
-            <button onclick="doLogin()" class="w-full bg-blue-600 py-3 rounded font-bold hover:bg-blue-500 transition">進入開發環境</button>
-            <p class="mt-4 text-[10px] text-slate-500">存檔將保存在此瀏覽器</p>
+    <div id="auth-overlay" class="fixed inset-0 bg-slate-950/95 z-[1000] flex items-center justify-center p-6 transition-opacity duration-500">
+        <div class="bg-slate-900 border border-slate-800 p-10 rounded-3xl max-w-sm w-full shadow-2xl text-center">
+            <div class="text-4xl mb-4">🚀</div>
+            <h1 class="text-2xl font-black tracking-tighter text-white uppercase">Titan_Nexus_v20</h1>
+            <p class="text-xs text-slate-500 mt-2 mb-8">請輸入學員編號以同步進度</p>
+            <input id="login-name" type="text" placeholder="你的名字 / STUDENT_ID" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl mb-4 text-cyan-400 outline-none focus:border-cyan-500 transition">
+            <button onclick="handleLogin()" class="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-black font-black rounded-xl shadow-[0_0_20px_rgba(0,243,255,0.3)] transition">驗證並啟動</button>
         </div>
     </div>
 
-    <header class="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/50">
+    <header class="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-8">
         <div class="flex items-center space-x-4">
-            <span class="bg-blue-600 px-2 py-1 rounded text-xs font-black">v19</span>
-            <h2 class="font-bold">FRC 實戰教室：<span id="display-name" class="text-blue-400">---</span></h2>
+            <div class="px-2 py-1 bg-cyan-900 text-cyan-400 text-[10px] font-black rounded border border-cyan-800">SYSTEM_READY</div>
+            <h2 class="font-bold text-sm tracking-widest text-slate-300">FRC_DEVELOPER_CONSOLE: <span id="user-display" class="text-white">---</span></h2>
         </div>
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-6">
             <div class="text-right">
-                <p class="text-[10px] text-slate-500 font-bold">解鎖進度</p>
-                <div class="w-40 h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
-                    <div id="p-bar" class="h-full bg-blue-500 w-0 transition-all duration-500"></div>
+                <div class="text-[9px] text-slate-500 font-bold uppercase">總體學習進度</div>
+                <div class="w-48 h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
+                    <div id="master-progress" class="h-full bg-cyan-500 w-0 transition-all duration-1000"></div>
                 </div>
             </div>
-            <button onclick="logout()" class="text-xs text-slate-500 hover:text-red-400">登出</button>
+            <button onclick="clearData()" class="text-[10px] text-red-500 underline hover:text-red-400">重置檔案</button>
         </div>
     </header>
 
     <main class="flex-1 flex overflow-hidden">
-        <aside class="w-64 border-r border-slate-800 bg-slate-900/30 overflow-y-auto p-4 space-y-2">
-            <p class="text-[10px] text-slate-500 font-bold px-2 mb-4">MISSION_LOG</p>
-            <div id="nav-container"></div>
+        <aside class="w-72 bg-slate-900/50 border-r border-slate-800 flex flex-col">
+            <div class="p-4 text-[10px] text-slate-500 font-black tracking-widest uppercase border-b border-slate-800">Mission_Tree</div>
+            <nav id="mission-nav" class="flex-1 overflow-y-auto p-2 space-y-1">
+                </nav>
         </aside>
 
-        <section class="flex-1 flex flex-col p-6 space-y-6 overflow-y-auto">
-            <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-xl">
-                <h3 id="task-title" class="text-xl font-bold mb-2">載入中...</h3>
-                <p id="task-desc" class="text-sm text-slate-400 leading-relaxed"></p>
-                <div id="edu-tip" class="mt-4 p-3 bg-blue-900/20 border-l-4 border-blue-500 text-xs text-blue-300"></div>
+        <section class="flex-1 flex flex-col bg-slate-950/50 p-6 overflow-y-auto space-y-6">
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl font-black italic" id="bg-num">00</div>
+                <h3 id="step-title" class="text-xl font-bold text-white mb-2 underline decoration-cyan-500 decoration-4 underline-offset-8">載入中...</h3>
+                <p id="step-desc" class="text-sm text-slate-400 leading-relaxed mt-4"></p>
+                <div id="step-tip" class="mt-4 p-4 bg-blue-950/30 border border-blue-900/30 rounded-xl text-xs text-blue-300 italic"></div>
             </div>
 
-            <div class="relative flex-1 flex flex-col min-h-[400px]">
-                <div class="absolute top-2 right-4 text-[10px] text-slate-600 font-mono italic">Robot.java</div>
-                <textarea id="editor" class="code-editor flex-1 p-6 rounded-xl outline-none resize-none text-sm leading-relaxed" spellcheck="false"></textarea>
-                <div class="mt-4 flex space-x-4">
-                    <button onclick="runCode()" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-xl shadow-lg transition transform active:scale-95">
-                        編譯並部署 (DEPLOY)
+            <div class="flex-1 flex flex-col min-h-[400px]">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-[10px] text-slate-500 font-mono italic">Robot.java (Standard FRC Structure)</span>
+                    <span id="trans-box" class="text-[11px] text-cyan-500 font-bold"></span>
+                </div>
+                <textarea id="editor" class="flex-1 p-6 rounded-xl code-font text-sm leading-loose" spellcheck="false" oninput="autoTranslate()"></textarea>
+                <div class="mt-4 flex gap-4">
+                    <button onclick="deployCode()" class="flex-1 py-4 bg-green-600 hover:bg-green-500 text-white font-black rounded-xl shadow-xl transition transform active:scale-95">
+                        編譯並部署到 RoboRIO (F5)
                     </button>
                 </div>
             </div>
         </section>
 
-        <aside class="w-80 bg-black/40 border-l border-slate-800 p-6 flex flex-col space-y-10">
-            <div class="text-center">
-                <p class="text-[10px] text-slate-500 font-bold mb-6 tracking-widest italic">HARDWARE_SIMULATOR</p>
-                <div class="flex justify-center">
-                    <div id="motor-vis" class="motor-anim flex items-center justify-center">
-                        <div class="w-1 h-12 bg-white rounded-full"></div>
-                    </div>
+        <aside class="w-80 bg-slate-900/80 border-l border-slate-800 p-6 flex flex-col">
+            <div class="text-center py-6">
+                <p class="text-[10px] text-slate-500 font-bold mb-8 uppercase tracking-[0.3em]">Hardware_Simulation</p>
+                <div class="relative flex justify-center">
+                    <div id="smoke-box" class="smoke left-1/2 -translate-x-1/2"></div>
+                    <div id="motor-sim" class="motor-rotor"></div>
                 </div>
-                <p id="speed-tag" class="mt-4 text-2xl font-black">0%</p>
-                <p class="text-[10px] text-slate-500 uppercase">馬達出力 (PWM 0)</p>
+                <p id="speed-text" class="mt-6 text-4xl font-black text-white">0%</p>
+                <p class="text-[10px] text-slate-500 mt-1">Output PWM_0</p>
             </div>
 
-            <div class="border-t border-slate-800 pt-10">
-                <p class="text-[10px] text-slate-500 font-bold mb-4">控制器輸入 (HID)</p>
-                <div class="flex justify-center mb-4">
+            <div class="mt-10 pt-10 border-t border-slate-800">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase">HID_Joystick_USB0</span>
+                    <span id="joy-status" class="text-[9px] px-2 py-0.5 bg-slate-800 rounded text-slate-400">IDLE</span>
+                </div>
+                <div class="flex justify-center mb-6">
                     <div class="joystick-base">
-                        <div id="joy-stick" class="joystick-stick"></div>
+                        <div id="joy-handle" class="joystick-handle"></div>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-[10px]">
-                    <div class="bg-slate-900 p-2 rounded">Axis Y: <span id="axis-val" class="text-blue-400">0.0</span></div>
-                    <div class="bg-slate-900 p-2 rounded">Button A: <span id="btn-val" class="text-red-500">OFF</span></div>
+                <div class="space-y-2">
+                    <div class="bg-black/50 p-3 rounded-lg flex justify-between">
+                        <span class="text-[10px] text-slate-500 font-bold">Axis Y</span>
+                        <span id="axis-y-val" class="text-xs text-cyan-400 font-mono">0.00</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="flex-1 bg-black rounded p-4 font-mono text-[10px] overflow-y-auto mt-4 border border-slate-800">
-                <p class="text-slate-600">>> RIO_LOG:</p>
-                <div id="rio-log" class="text-slate-400 mt-2 space-y-1"></div>
+            <div class="mt-auto h-32 bg-black rounded-xl border border-slate-800 p-3 font-mono text-[10px] overflow-y-auto">
+                <div id="console-logs" class="text-slate-500 space-y-1">
+                    <p>> 系統連線就緒...</p>
+                </div>
             </div>
         </aside>
     </main>
 
 <script>
-// --- [實戰課程體系] ---
-const courses = [
+// --- [1. 完整的教學內容數據庫] ---
+const nexusMissions = [
     {
-        title: "01. 定義實體馬達",
-        desc: "歡迎來到 FRC！首先，我們要讓程式知道硬體在哪。請在類別中宣告一個 <b>PWMVictorSPX</b> 類型的變數 <b>m_motor</b>，並在 <b>robotInit</b> 中將它指向 <b>PWM 0</b>。",
-        tip: "💡 你學到：如何建立硬體連結。沒有這一行，程式就找不到馬達。",
-        startCode: "public class Robot extends TimedRobot {\n  PWMVictorSPX m_motor;\n\n  public void robotInit() {\n    // 寫下：m_motor = new PWMVictorSPX(0);\n  }\n}",
-        check: (c) => c.includes("m_motor = new PWMVictorSPX(0);")
+        id: 0,
+        title: "第一步：軟體安裝與環境",
+        desc: "歡迎來到 FRC！作為新手，你首先需要安裝 WPILib 教科書。在程式中，我們透過 <code>import</code> 來引入馬達控制功能。請在最上方加入馬達的『說明書』。",
+        tip: "💡 這裡學到：如何呼叫 FRC 官方庫。沒有它，機器人連馬達是什麼都不知道。",
+        start: "import edu.wpi.first.wpilibj.TimedRobot;\n// 加入下一行：import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;\n\npublic class Robot extends TimedRobot {\n}",
+        solution: "import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;",
+        trans: "引入馬達控制模組..."
     },
     {
-        title: "02. 讀取搖桿數值",
-        desc: "比賽是人在打的！我們要宣告一個 <b>Joystick</b> 叫做 <b>m_stick</b>，並連接到 USB 0。這能讓我們抓到人類的指令。",
-        tip: "💡 你學到：輸入 (Input) 的概念。搖桿的數值會從 1.0 (推到底) 到 -1.0 (往後拉)。",
-        startCode: "public class Robot extends TimedRobot {\n  Joystick m_stick = new Joystick(0);\n  \n  public void robotPeriodic() {\n    // 練習取得 Y 軸數值：double y = m_stick.getY();\n  }\n}",
-        check: (c) => c.includes("m_stick.getY()")
+        id: 1,
+        title: "第二步：硬體定義 (Init)",
+        desc: "我們要告訴程式，馬達插在 RoboRIO 的哪個孔。請宣告一個名為 <code>m_motor</code> 的馬達，並在 <code>robotInit</code> 中連接到 <b>PWM 埠號 0</b>。",
+        tip: "💡 這裡學到：實體化 (Instantiation)。這是在程式世界裡創造出一個真實存在的馬達物件。",
+        start: "public class Robot extends TimedRobot {\n  PWMVictorSPX m_motor;\n\n  @Override\n  public void robotInit() {\n    // 寫入：m_motor = new PWMVictorSPX(0);\n  }\n}",
+        solution: "m_motor = new PWMVictorSPX(0);",
+        trans: "在 PWM 0 號位置初始化馬達..."
     },
     {
-        title: "03. 搖桿連動馬達",
-        desc: "現在把輸入傳給輸出！在 <b>robotPeriodic</b> 裡寫下 <code>m_motor.set(m_stick.getY());</code>。這樣你推搖桿，馬達就會跟著轉！",
-        tip: "💡 你學到：FRC 最核心的控制閉環。人類動作 -> 搖桿讀值 -> 傳給馬達。",
-        startCode: "public void robotPeriodic() {\n  // 讓搖桿控制馬達：m_motor.set( ... );\n}",
-        check: (c) => c.includes("m_motor.set(m_stick.getY())")
+        id: 2,
+        title: "第三步：遙控連動 (Periodic)",
+        desc: "現在是重頭戲！讀取搖桿 Y 軸的值，並直接塞給馬達。請在 <code>robotPeriodic</code> 寫入連動指令。",
+        tip: "💡 這裡學到：控制閉環 (Control Loop)。Periodic 每秒執行 50 次，讓馬達不斷跟隨搖桿動作。",
+        start: "Joystick m_stick = new Joystick(0);\n\n@Override\npublic void robotPeriodic() {\n  // 寫入：m_motor.set(m_stick.getY());\n}",
+        solution: "m_motor.set(m_stick.getY());",
+        trans: "抓取搖桿數值並輸出至馬達..."
+    },
+    {
+        id: 3,
+        title: "第四步：過載警告 (If-Else)",
+        desc: "如果你讓馬達出力超過 1.0 (故意設為 2.0)，馬達會冒煙！請練習手動設定出力為 <b>2.0</b> 來觸發保護裝置。",
+        tip: "💡 這裡學到：安全機制。身為工程師，你必須知道硬體的極限。",
+        start: "public void robotPeriodic() {\n  // 寫入：m_motor.set(2.0);\n}",
+        solution: "m_motor.set(2.0);",
+        trans: "危險測試：嘗試輸出極限電流..."
     }
 ];
 
-let userData = { name: "", progress: 0 };
-let currentRotation = 0;
-let simSpeed = 0;
+// --- [2. 系統狀態管理] ---
+let state = {
+    user: "",
+    progress: 0,
+    motorAngle: 0,
+    motorSpeed: 0,
+    isJoystickActive: false
+};
 
-function doLogin() {
-    const n = document.getElementById('u-name').value;
-    if(!n) return alert("請輸入姓名");
-    userData.name = n;
-    localStorage.setItem("frc_v19_save", JSON.stringify(userData));
-    document.getElementById('login-layer').classList.add('hidden');
-    initApp();
+// --- [3. 登入與進度管理] ---
+function handleLogin() {
+    const name = document.getElementById('login-name').value;
+    if(!name) return alert("請輸入學員姓名！");
+    state.user = name;
+    
+    // 從 LocalStorage 恢復進度
+    const saved = localStorage.getItem(`nexus_save_${name}`);
+    if(saved) {
+        state.progress = JSON.parse(saved).progress;
+    }
+    
+    document.getElementById('auth-overlay').style.opacity = '0';
+    setTimeout(() => {
+        document.getElementById('auth-overlay').classList.add('hidden');
+        initNexus();
+    }, 500);
 }
 
-function initApp() {
-    document.getElementById('display-name').innerText = userData.name;
+function initNexus() {
+    document.getElementById('user-display').innerText = state.user;
     renderNav();
-    loadStep(userData.progress);
-    setInterval(updatePhysics, 30);
+    loadMission(state.progress);
+    startPhysicsEngine();
+    enableJoystick();
 }
 
 function renderNav() {
-    const cont = document.getElementById('nav-container');
-    cont.innerHTML = courses.map((c, i) => `
-        <div onclick="loadStep(${i})" class="step-node p-4 mb-2 text-sm ${i === userData.progress ? 'active' : ''} ${i < userData.progress ? 'completed' : ''}">
-            <p class="text-[9px] opacity-50 font-mono">MISSION_0${i+1}</p>
-            <p class="font-bold ${i <= userData.progress ? 'text-slate-200' : 'text-slate-600'}">${c.title}</p>
+    const nav = document.getElementById('mission-nav');
+    nav.innerHTML = nexusMissions.map((m, i) => `
+        <div onclick="loadMission(${i})" class="nav-item p-4 mb-1 rounded-r-lg text-sm ${i === state.progress ? 'active' : ''} ${i < state.progress ? 'done' : ''} ${i > state.progress ? 'locked' : ''}">
+            <span class="text-[9px] block opacity-50 font-mono">MISSION_0${i}</span>
+            <p class="font-bold">${m.title}</p>
         </div>
     `).join("");
-    document.getElementById('p-bar').style.width = (userData.progress / courses.length * 100) + "%";
+    document.getElementById('master-progress').style.width = (state.progress / (nexusMissions.length - 1) * 100) + "%";
 }
 
-function loadStep(idx) {
-    if(idx > userData.progress) return;
-    const s = courses[idx];
-    document.getElementById('task-title').innerText = s.title;
-    document.getElementById('task-desc').innerHTML = s.desc;
-    document.getElementById('edu-tip').innerHTML = s.tip;
-    document.getElementById('editor').value = s.startCode;
+function loadMission(idx) {
+    if(idx > state.progress) return;
+    const m = nexusMissions[idx];
+    document.getElementById('step-title').innerText = m.title;
+    document.getElementById('step-desc').innerHTML = m.desc;
+    document.getElementById('step-tip').innerHTML = m.tip;
+    document.getElementById('editor').value = m.start;
+    document.getElementById('bg-num').innerText = "0" + idx;
+    autoTranslate();
 }
 
-function runCode() {
+// --- [4. 核心功能：翻譯機與部署] ---
+function autoTranslate() {
     const code = document.getElementById('editor').value;
-    const step = courses[userData.progress];
+    const transBox = document.getElementById('trans-box');
+    const m = nexusMissions[state.progress];
     
-    logRio("編譯中 (Building Gradle)...", "slate-500");
+    if(code.includes(m.solution.split(';')[0])) {
+        transBox.innerText = "✓ 翻譯：將代碼轉換為機器指令 - " + m.trans;
+    } else {
+        transBox.innerText = "等待輸入正確的 Java 指令...";
+    }
+}
+
+function deployCode() {
+    const code = document.getElementById('editor').value;
+    const m = nexusMissions[state.progress];
+    
+    addLog("> 啟動 Gradle Build...", "slate-500");
     
     setTimeout(() => {
-        if(step.check(code)) {
-            logRio("Deploy 成功！機器人已更新。", "green-400");
-            if(userData.progress === 2) {
-                logRio("模擬搖桿已激活，請拉動搖桿測試馬達！", "blue-400");
-                enableJoystickControl();
-            }
+        if(code.includes(m.solution)) {
+            addLog("> DEPLOY SUCCESSFUL! 程式已寫入 RoboRIO。", "green-400");
             
-            if(userData.progress < courses.length - 1) {
-                userData.progress++;
-                localStorage.setItem("frc_v19_save", JSON.stringify(userData));
-                setTimeout(() => { alert("任務完成！解鎖下一階段。"); renderNav(); loadStep(userData.progress); }, 1000);
-            } else {
-                alert("恭喜！你學會了 FRC 基礎控制邏輯！");
+            // 特殊邏輯：解鎖搖桿或觸發燒毀
+            if(state.progress === 2) state.isJoystickActive = true;
+            if(state.progress === 3 && code.includes("2.0")) triggerBurn();
+
+            // 進度儲存
+            if(state.progress < nexusMissions.length - 1) {
+                state.progress++;
+                localStorage.setItem(`nexus_save_${state.user}`, JSON.stringify({progress: state.progress}));
+                setTimeout(() => { alert("任務達成！解鎖下一階段內容。"); renderNav(); loadMission(state.progress); }, 1000);
             }
         } else {
-            logRio("錯誤：語法不匹配任務要求，請再試一次。", "red-400");
+            addLog("> BUILD FAILED: 語法錯誤或邏輯不匹配。", "red-400");
         }
-    }, 800);
+    }, 1000);
 }
 
-function enableJoystickControl() {
-    const stick = document.getElementById('joy-stick');
-    stick.onmousedown = (e) => {
+// --- [5. 物理引擎與模擬器] ---
+function startPhysicsEngine() {
+    setInterval(() => {
+        if(Math.abs(state.motorSpeed) > 0.05) {
+            state.motorAngle += (state.motorSpeed * 30);
+            document.getElementById('motor-sim').style.transform = `rotate(${state.motorAngle}deg)`;
+        }
+        document.getElementById('speed-text').innerText = Math.round(state.motorSpeed * 100) + "%";
+    }, 20);
+}
+
+function enableJoystick() {
+    const handle = document.getElementById('joy-handle');
+    handle.onmousedown = (e) => {
         document.onmousemove = (ev) => {
-            let y = (ev.clientY - stick.parentElement.getBoundingClientRect().top - 50) / 50;
+            let y = (ev.clientY - handle.parentElement.getBoundingClientRect().top - 40) / 40;
             y = Math.max(-1, Math.min(1, y));
-            stick.style.top = (30 + y * 30) + "px";
-            simSpeed = -y; // FRC 搖桿往前推通常是負數或看設定，這裡模擬正向
-            document.getElementById('axis-val').innerText = (-y).toFixed(2);
+            handle.style.top = (25 + y * 25) + "px";
+            document.getElementById('axis-y-val').innerText = (-y).toFixed(2);
+            document.getElementById('joy-status').innerText = "ACTIVE";
+            if(state.isJoystickActive) state.motorSpeed = -y;
         };
         document.onmouseup = () => {
             document.onmousemove = null;
-            stick.style.top = "30px";
-            simSpeed = 0;
-            document.getElementById('axis-val').innerText = "0.00";
+            handle.style.top = "25px";
+            state.motorSpeed = 0;
+            document.getElementById('axis-y-val').innerText = "0.00";
+            document.getElementById('joy-status').innerText = "IDLE";
         };
     };
 }
 
-function updatePhysics() {
-    if(Math.abs(simSpeed) > 0.05) {
-        currentRotation += (simSpeed * 20);
-        document.getElementById('motor-vis').style.transform = `rotate(${currentRotation}deg)`;
-    }
-    document.getElementById('speed-tag').innerText = Math.round(simSpeed * 100) + "%";
+function triggerBurn() {
+    document.getElementById('smoke-box').classList.add('burning');
+    addLog("> CRITICAL: 馬達電流過載！燒毀警告！", "red-500");
+    state.motorSpeed = 0;
 }
 
-function logRio(msg, color) {
-    const log = document.getElementById('rio-log');
+function addLog(msg, color) {
+    const log = document.getElementById('console-logs');
     log.innerHTML += `<p class="text-${color}">> ${msg}</p>`;
     log.scrollTop = log.scrollHeight;
 }
 
-function logout() { localStorage.removeItem("frc_v19_save"); location.reload(); }
-
-window.onload = () => {
-    const saved = localStorage.getItem("frc_v19_save");
-    if(saved) { userData = JSON.parse(saved); document.getElementById('login-layer').classList.add('hidden'); initApp(); }
-};
+function clearData() {
+    if(confirm("確定要重置所有進度嗎？")) { localStorage.clear(); location.reload(); }
+}
 </script>
 </body>
 </html>
