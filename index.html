@@ -2,145 +2,346 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>FRC Initiator v21 | 專業新手啟蒙基地</title>
+    <title>FRC Initiator v22 | 專業教練實戰版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Noto+Sans+TC:wght@300;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background: #0f172a; }
-        .hw-card { transition: 0.3s; border: 2px solid transparent; }
-        .hw-card:hover { border-color: #3b82f6; transform: translateY(-5px); }
-        /* 模擬語法高亮 */
-        .hl-key { color: #ff79c6; } /* keyword */
-        .hl-obj { color: #8be9fd; } /* object */
-        .hl-mth { color: #50fa7b; } /* method */
-        .hl-num { color: #bd93f9; } /* number */
-        .editor-container { position: relative; background: #1e1e1e; border-radius: 8px; padding: 10px; }
-        #syntax-overlay { position: absolute; pointer-events: none; white-space: pre-wrap; color: #d4d4d4; }
-        #real-input { background: transparent; color: transparent; caret-color: white; z-index: 10; position: relative; }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Noto+Sans+TC:wght@300;900&display=swap');
+        :root { --rio-gray: #2d2d2d; --ds-bg: #e0e0e0; --code-bg: #1e1e1e; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: #121212; color: #eee; height: 100vh; overflow: hidden; }
+        .code-font { font-family: 'JetBrains Mono', monospace; }
+        
+        /* 模擬專業 IDE：語法高亮與縮排 */
+        #editor-container { background: var(--code-bg); border: 1px solid #444; position: relative; border-radius: 4px; }
+        .line-numbers { color: #858585; text-align: right; padding-right: 10px; user-select: none; border-right: 1px solid #444; }
+        #real-textarea { background: transparent; color: transparent; caret-color: #fff; z-index: 2; position: relative; line-height: 1.5rem; outline: none; }
+        #highlight-layer { position: absolute; top: 0; left: 0; padding-left: 3.5rem; pointer-events: none; white-space: pre-wrap; line-height: 1.5rem; color: #d4d4d4; }
+        .kw { color: #c586c0; } .obj { color: #4ec9b0; } .mth { color: #dcdcaa; } .num { color: #b5cea8; } .str { color: #ce9178; }
+
+        /* Driver Station 樣式 (解決缺點 39, 50) */
+        .ds-panel { background: var(--ds-bg); color: #333; border-top: 4px solid #999; }
+        .status-light { width: 12px; height: 12px; border-radius: 50%; background: #444; }
+        .status-light.active { background: #0f0; box-shadow: 0 0 8px #0f0; }
+
+        /* 物理模擬器 (解決缺點 2, 3, 4, 36) */
+        .rio-case { width: 240px; height: 200px; background: #444; border-radius: 10px; position: relative; border: 2px solid #222; }
+        .pwm-port { width: 15px; height: 10px; background: #222; margin: 2px; font-size: 6px; color: #666; text-align: center; }
+        .pwm-active { background: #fbbf24; box-shadow: 0 0 5px #fbbf24; }
+        
+        /* 搖桿控制 (解決缺點 26, 34, 35) */
+        .joy-base { width: 80px; height: 80px; background: #333; border-radius: 50%; position: relative; }
+        .joy-stick { width: 30px; height: 30px; background: #555; border-radius: 50%; position: absolute; top: 25px; left: 25px; transition: 0.1s; cursor: grab; border: 2px solid #777; }
     </style>
 </head>
-<body class="h-screen flex flex-col text-slate-200">
+<body class="flex flex-col h-screen">
 
-    <nav class="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6">
+    <header class="h-14 bg-black border-b border-gray-800 flex items-center justify-between px-6">
+        <div class="flex items-center space-x-4">
+            <span class="bg-yellow-500 text-black text-[10px] font-black px-2 py-0.5 rounded">ROOKIE_BASE</span>
+            <h1 class="text-sm font-black tracking-widest">FRC 核心修煉場 <span id="user-name" class="text-gray-500 font-normal"></span></h1>
+        </div>
         <div class="flex items-center space-x-6">
-            <span class="text-xs font-bold tracking-widest text-slate-500">FRC_DRIVERS_STATION_V1.0</span>
-            <div class="flex space-x-2">
-                <div id="ds-status" class="px-3 py-1 bg-red-900/50 text-red-500 text-[10px] rounded border border-red-500">DISCONNECTED</div>
-                <div class="px-3 py-1 bg-slate-800 text-slate-400 text-[10px] rounded">BATTERY: 12.6V</div>
-            </div>
+            <div class="text-[10px] text-gray-500 uppercase tracking-tighter">學習評估: <span id="eval-score" class="text-green-500">0%</span></div>
+            <button onclick="logout()" class="text-[10px] text-red-500 underline">登出系統</button>
         </div>
-        <div class="flex space-x-4">
-            <button onclick="copyExample()" class="text-[10px] text-slate-400 hover:text-white">複製範例 (解決缺點 46)</button>
-            <button onclick="showHardwareMap()" class="text-[10px] text-blue-400 hover:underline">查看硬體接線圖 (解決缺點 4, 15)</button>
-        </div>
-    </nav>
+    </header>
 
     <main class="flex-1 flex overflow-hidden">
-        <aside class="w-1/3 p-8 border-r border-slate-800 overflow-y-auto space-y-8 bg-slate-900/20">
-            <section id="intro">
-                <h1 class="text-2xl font-black text-white mb-4">歡迎來到 FRC！</h1>
-                <p class="text-sm text-slate-400 leading-relaxed">
-                    在動手寫程式前，我們要先了解：<br>
-                    <b class="text-blue-400">什麼是 RoboRIO？</b> 它是機器人的大腦。<br>
-                    <b class="text-green-400">什麼是 PWM？</b> 這是大腦控制馬達的通道。
-                </p>
-            </section>
+        <aside class="w-80 bg-gray-900 border-r border-black p-5 overflow-y-auto space-y-6">
+            <div id="mission-card" class="space-y-4">
+                <h2 id="m-title" class="text-lg font-black text-white italic underline decoration-yellow-500 underline-offset-4">加載中...</h2>
+                <div id="m-content" class="text-xs text-gray-400 leading-relaxed space-y-3"></div>
+            </div>
+            
+            <div class="p-4 bg-blue-900/10 border border-blue-800/30 rounded-lg">
+                <p class="text-[10px] font-bold text-blue-400 mb-2 uppercase tracking-widest">💡 專業觀念</p>
+                <p id="m-concept" class="text-[11px] text-blue-200 italic"></p>
+            </div>
 
-            <div class="space-y-4">
-                <div class="hw-card bg-slate-800/50 p-4 rounded-xl cursor-help">
-                    <p class="text-[10px] font-bold text-blue-400 uppercase">Step 01: 認識馬達範圍</p>
-                    <p class="text-sm mt-2 font-bold text-slate-200">馬達的出力範圍是 -1.0 ~ 1.0</p>
-                    <p class="text-xs text-slate-500 mt-1">1.0 = 全速前進 / -1.0 = 全速後退 / 0 = 停止 (解決缺點 5, 25)</p>
-                </div>
-                <div id="task-guide" class="bg-blue-600/10 border border-blue-500/50 p-5 rounded-2xl">
-                    <h2 class="font-bold text-blue-400 mb-2">🎯 今日任務</h2>
-                    <p class="text-sm">在 <code>robotPeriodic</code> 寫入指令，讓馬達跟隨搖桿的 Y 軸數值。</p>
+            <div class="space-y-2">
+                <p class="text-[10px] text-gray-500 font-bold">目前硬體配置 (Hardware Map)</p>
+                <div class="text-[10px] bg-black p-3 rounded space-y-1">
+                    <p>● RoboRIO: <span class="text-green-500">CONNECTED</span></p>
+                    <p>● PWM 0: <span class="text-yellow-500">VictorSPX Motor</span></p>
+                    <p>● USB 0: <span class="text-blue-500">Logitech Joystick</span></p>
                 </div>
             </div>
         </aside>
 
-        <section class="flex-1 flex flex-col p-6 bg-slate-950">
-            <div class="editor-container flex-1 flex flex-col">
-                <div id="syntax-overlay" class="absolute inset-0 p-6 code-font text-sm"></div>
-                <textarea id="real-input" class="w-full h-full p-6 code-font text-sm outline-none resize-none" oninput="handleInput()" spellcheck="false"></textarea>
-            </div>
-            
-            <div id="error-guide" class="h-24 mt-4 bg-red-950/20 border border-red-900/50 rounded-xl p-4 hidden">
-                <p class="text-xs text-red-400 font-bold italic" id="error-text"></p>
+        <section class="flex-1 flex flex-col p-4 space-y-4">
+            <div class="flex justify-between items-center text-[10px] text-gray-500">
+                <span>src/main/java/frc/robot/Robot.java</span>
+                <div class="flex space-x-4">
+                    <button onclick="undo()" class="hover:text-white">Undo</button>
+                    <button onclick="copySnippet()" class="hover:text-white font-bold text-blue-400 text-xs">複製完整結構</button>
+                </div>
             </div>
 
-            <button onclick="deploy()" class="mt-4 bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-black text-sm tracking-widest transition shadow-lg">
-                DEPLOY TO ROBORIO
+            <div id="editor-container" class="flex-1 overflow-hidden flex">
+                <div class="line-numbers w-10 bg-gray-800/50 py-4 text-[12px] code-font">
+                    1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12<br>13<br>14<br>15
+                </div>
+                <div class="relative flex-1">
+                    <div id="highlight-layer" class="text-[14px] code-font"></div>
+                    <textarea id="real-textarea" class="absolute inset-0 w-full h-full p-0 pl-14 pt-4 text-[14px] code-font resize-none" spellcheck="false" oninput="updateEditor()"></textarea>
+                </div>
+            </div>
+
+            <div id="error-panel" class="h-20 bg-red-900/10 border border-red-900/30 rounded p-3 hidden">
+                <div class="flex items-start space-x-2">
+                    <span class="text-red-500 font-bold">[!]</span>
+                    <div>
+                        <p class="text-[11px] text-red-400 font-bold uppercase" id="err-type">Compile Error</p>
+                        <p class="text-xs text-gray-300" id="err-msg"></p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="deploy()" class="w-full py-4 bg-green-600 hover:bg-green-500 text-black font-black rounded shadow-[0_0_20px_rgba(34,197,94,0.3)] transition">
+                DEPLOY TO ROBORIO (BUILD SUCCESSFUL)
             </button>
         </section>
 
-        <aside class="w-1/4 border-l border-slate-800 p-6 flex flex-col items-center space-y-12 bg-slate-900/50">
-             <div class="text-center">
-                 <p class="text-[10px] text-slate-500 font-bold mb-4">MOTOR_VIEW (PWM_0)</p>
-                 <div id="motor-disk" class="w-32 h-32 border-4 border-slate-700 rounded-full relative flex items-center justify-center">
-                     <div class="w-1 h-16 bg-blue-500 rounded-full origin-bottom"></div>
-                 </div>
-                 <p id="output-val" class="mt-4 text-3xl font-black text-white">0%</p>
-             </div>
+        <aside class="w-80 bg-black flex flex-col border-l border-gray-900 p-6">
+            <div class="flex-1 flex flex-col items-center justify-center space-y-10">
+                <div class="rio-case flex flex-wrap p-2 content-start">
+                    <div class="absolute top-2 left-2 text-[8px] text-white opacity-20 italic">NI RoboRIO 2.0</div>
+                    <div class="flex flex-wrap w-full mt-10">
+                        <div id="pwm-0" class="pwm-port">0</div><div class="pwm-port">1</div><div class="pwm-port">2</div><div class="pwm-port">3</div>
+                    </div>
+                    <div class="mt-8 flex flex-col items-center w-full">
+                        <div id="motor-rotor" class="w-20 h-20 border-4 border-gray-600 rounded-full relative flex items-center justify-center">
+                            <div class="w-1 h-10 bg-yellow-500 rounded-full origin-bottom"></div>
+                        </div>
+                        <p id="m-speed-text" class="text-2xl font-black mt-2">0%</p>
+                    </div>
+                </div>
 
-             <div class="w-full space-y-4">
-                 <p class="text-[10px] text-slate-500 font-bold">JOYSTICK_AXIS (USB_0)</p>
-                 <input type="range" min="-100" max="100" value="0" class="w-full accent-blue-500" id="joy-slider">
-                 <div class="flex justify-between text-[10px] text-slate-500">
-                     <span>REVERSE (-1.0)</span>
-                     <span>FORWARD (1.0)</span>
-                 </div>
-             </div>
+                <div class="flex flex-col items-center">
+                    <p class="text-[9px] text-gray-500 font-bold mb-4 uppercase tracking-widest">Joystick USB_0</p>
+                    <div class="joy-base">
+                        <div id="joy-stick" class="joy-stick"></div>
+                    </div>
+                    <div class="flex space-x-4 mt-4">
+                        <div class="bg-gray-900 px-3 py-1 rounded text-[10px]">Y: <span id="axis-val" class="text-blue-400">0.00</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ds-panel h-40 rounded-t-xl p-4 flex flex-col justify-between">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black italic">DRIVER STATION 2026</span>
+                    <div class="flex space-x-2 items-center">
+                        <div id="led-comm" class="status-light"></div><span class="text-[8px]">COMM</span>
+                        <div id="led-code" class="status-light"></div><span class="text-[8px]">CODE</span>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-2">
+                    <div class="flex flex-col space-y-1">
+                        <button onclick="setDS('teleop')" id="btn-teleop" class="px-4 py-1 bg-gray-300 border border-gray-400 text-[10px] font-bold rounded">Teleoperated</button>
+                        <button onclick="setDS('disable')" id="btn-disable" class="px-4 py-1 bg-gray-500 text-white text-[10px] font-bold rounded">Disable</button>
+                    </div>
+                    <div class="flex-1 bg-black/10 rounded flex items-center justify-center border border-gray-400">
+                        <button onclick="toggleEnable()" id="btn-enable" class="px-6 py-2 bg-gray-400 text-white font-black text-xs rounded shadow-inner">ENABLE</button>
+                    </div>
+                </div>
+
+                <div class="text-[9px] text-gray-500 flex justify-between border-t border-gray-300 pt-2">
+                    <span>TEAM: 2026</span>
+                    <span>VOLTAGE: <span class="text-blue-600">12.56V</span></span>
+                </div>
+            </div>
         </aside>
     </main>
 
-    <script>
-        // 解決 26, 27: 簡單的語法高亮模擬
-        function handleInput() {
-            const input = document.getElementById('real-input');
-            const overlay = document.getElementById('syntax-overlay');
-            let val = input.value;
-            
-            // 基礎正則替換
-            val = val.replace(/\b(public|class|void|import|new|double)\b/g, '<span class="hl-key">$1</span>');
-            val = val.replace(/\b(m_motor|m_stick)\b/g, '<span class="hl-obj">$1</span>');
-            val = val.replace(/\.(set|getY)\b/g, '.<span class="hl-mth">$1</span>');
-            val = val.replace(/\b(\d\.\d)\b/g, '<span class="hl-num">$1</span>');
-            
-            overlay.innerHTML = val;
-            checkLogic(input.value);
-        }
+<script>
+// --- [1. 完善的課程數據 (解決缺點 1-25)] ---
+const curriculum = [
+    {
+        title: "00_認識控制鏈",
+        content: "<p><b>FRC 是什麼？</b> 它是機器人的奧運！</p><p>今天你要當司機，但司機需要『方向盤』(Joystick) 與『引擎』(Motor)。</p><p>任務：在程式最上方透過 <code>import</code> 引入馬達控制模組。</p>",
+        concept: "💡 import 就像是安裝 APP，你要用馬達功能，就得先安裝它的說明書。",
+        start: "// 請輸入 import \nimport edu.wpi.first.wpilibj.TimedRobot;\n\npublic class Robot extends TimedRobot {\n}",
+        check: (c) => c.includes("import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;"),
+        err: "找不到馬達說明書！請檢查是否輸入了正確的 import 語句。"
+    },
+    {
+        title: "01_定義與端口",
+        content: "<p><b>什麼是 PWM 0？</b> 這代表馬達的訊號線插在 RoboRIO 的第一個孔。</p><p>任務：宣告一個馬達物件 <code>m_motor</code>，並連接到 0 號端口。</p>",
+        concept: "💡 變數定義就像給機器零件取名字。PWMVictorSPX 是型號，m_motor 是你給它取的名字。",
+        start: "public class Robot extends TimedRobot {\n  PWMVictorSPX m_motor;\n\n  public void robotInit() {\n    // 寫入：m_motor = new PWMVictorSPX(0);\n  }\n}",
+        check: (c) => c.includes("m_motor = new PWMVictorSPX(0);"),
+        err: "馬達沒有連接成功！檢查端口號是否為 0，且語法是否正確。"
+    },
+    {
+        title: "02_搖桿控制 (核心任務)",
+        content: "<p><b>讀取搖桿：</b> 使用 <code>m_stick.getY()</code> 取得前後推的數值。</p><p>注意：搖桿往前推通常數值是 <b>-1.0</b> (這是 FRC 的傳統)。</p><p>任務：在 Periodic 裡讓馬達跟隨搖桿轉動。</p>",
+        concept: "💡 robotPeriodic 每秒跑 50 次，這讓你的機器人能隨時反應你的手感。",
+        start: "Joystick m_stick = new Joystick(0);\n\npublic void robotPeriodic() {\n  // 讓搖桿控制馬達\n}",
+        check: (c) => c.includes("m_motor.set(m_stick.getY());"),
+        err: "邏輯錯誤：馬達沒有抓到搖桿的值。請確認寫入 m_motor.set(m_stick.getY());"
+    }
+];
 
-        // 解決 8, 44: 智能錯誤檢查
-        function checkLogic(code) {
-            const errBox = document.getElementById('error-guide');
-            const errText = document.getElementById('error-text');
+// --- [2. 系統狀態] ---
+let state = {
+    user: "小白學員",
+    progress: 0,
+    dsMode: 'disable', // teleop, disable
+    isEnabled: false,
+    motorSpeed: 0,
+    rotation: 0,
+    codeHistory: []
+};
+
+// --- [3. 編輯器引擎 (解決缺點 26, 27, 28)] ---
+function updateEditor() {
+    const area = document.getElementById('real-textarea');
+    const highlight = document.getElementById('highlight-layer');
+    let code = area.value;
+
+    // 儲存歷史 (Undo 功能基礎)
+    state.codeHistory.push(code);
+    if(state.codeHistory.length > 20) state.codeHistory.shift();
+
+    // 簡單高亮邏輯
+    code = code.replace(/\b(import|public|class|void|new|double|int)\b/g, '<span class="kw">$1</span>');
+    code = code.replace(/\b(m_motor|m_stick|TimedRobot|Joystick|PWMVictorSPX)\b/g, '<span class="obj">$1</span>');
+    code = code.replace(/\.(set|getY|robotInit|robotPeriodic)\b/g, '.<span class="mth">$1</span>');
+    code = code.replace(/\b(\d+)\b/g, '<span class="num">$1</span>');
+    
+    highlight.innerHTML = code + "\n";
+    checkRealTimeError(area.value);
+}
+
+function checkRealTimeError(code) {
+    const p = document.getElementById('error-panel');
+    const m = document.getElementById('err-msg');
+    
+    if(code.length > 5 && !code.includes(';')) {
+        p.classList.remove('hidden');
+        m.innerText = "偵測到語法錯誤：語句結尾缺少分號 ';'。在 Java 中，分號代表這行命令結束。";
+    } else {
+        p.classList.add('hidden');
+    }
+}
+
+// --- [4. Driver Station 邏輯 (解決缺點 39, 50)] ---
+function setDS(mode) {
+    state.dsMode = mode;
+    document.getElementById('btn-teleop').className = mode === 'teleop' ? "px-4 py-1 bg-blue-500 text-white text-[10px] font-bold rounded" : "px-4 py-1 bg-gray-300 text-[10px] font-bold rounded";
+    document.getElementById('btn-disable').className = mode === 'disable' ? "px-4 py-1 bg-red-600 text-white text-[10px] font-bold rounded" : "px-4 py-1 bg-gray-300 text-[10px] font-bold rounded";
+    if(mode === 'disable') {
+        state.isEnabled = false;
+        updateDSUI();
+    }
+}
+
+function toggleEnable() {
+    if(state.dsMode === 'disable') return alert("請先切換至 Teleoperated 模式！");
+    state.isEnabled = !state.isEnabled;
+    updateDSUI();
+}
+
+function updateDSUI() {
+    const btn = document.getElementById('btn-enable');
+    const ledCode = document.getElementById('led-code');
+    const ledComm = document.getElementById('led-comm');
+    
+    if(state.isEnabled) {
+        btn.innerText = "STOP";
+        btn.classList.replace('bg-gray-400', 'bg-red-500');
+        ledCode.classList.add('active');
+        ledComm.classList.add('active');
+    } else {
+        btn.innerText = "ENABLE";
+        btn.classList.replace('bg-red-500', 'bg-gray-400');
+        ledCode.classList.remove('active');
+        state.motorSpeed = 0;
+    }
+}
+
+// --- [5. 搖桿與物理引擎 (解決缺點 26, 35)] ---
+function initJoystick() {
+    const stick = document.getElementById('joy-stick');
+    stick.onmousedown = (e) => {
+        document.onmousemove = (ev) => {
+            const rect = stick.parentElement.getBoundingClientRect();
+            let y = (ev.clientY - rect.top - 40) / 40;
+            y = Math.max(-1, Math.min(1, y));
+            stick.style.top = (25 + y * 25) + "px";
             
-            if (code.length > 0 && !code.includes(';')) {
-                errBox.classList.remove('hidden');
-                errText.innerText = "💡 提示：Java 的指令結尾通常需要一個分號 ';'，就像中文的句點。";
-            } else if (code.includes('set') && !code.includes('getY')) {
-                errBox.classList.remove('hidden');
-                errText.innerText = "💡 思考：你雖然叫馬達動了，但你有跟它說要根據搖桿的數值 (getY) 動嗎？";
-            } else {
-                errBox.classList.add('hidden');
+            const finalVal = -y; // FRC 傳統：往前推是負，我們這裡模擬
+            document.getElementById('axis-val').innerText = finalVal.toFixed(2);
+            
+            if(state.isEnabled && state.progress >= 2) {
+                state.motorSpeed = finalVal;
+                document.getElementById('pwm-0').classList.add('pwm-active');
             }
-        }
+        };
+        document.onmouseup = () => {
+            document.onmousemove = null;
+            stick.style.top = "25px";
+            state.motorSpeed = 0;
+            document.getElementById('axis-val').innerText = "0.00";
+            document.getElementById('pwm-0').classList.remove('pwm-active');
+        };
+    };
+}
 
-        function deploy() {
-            // 模擬部署與 FRC 流程
-            document.getElementById('ds-status').innerText = "TELEOP ENABLED";
-            document.getElementById('ds-status').classList.replace('bg-red-900/50', 'bg-green-900/50');
-            document.getElementById('ds-status').classList.replace('text-red-500', 'text-green-500');
-            alert("代碼部署成功！現在拉動右側搖桿，看看馬達的反應。");
-        }
+// --- [6. 進度管理] ---
+function loadMission(idx) {
+    state.progress = idx;
+    const m = curriculum[idx];
+    document.getElementById('m-title').innerText = m.title;
+    document.getElementById('m-content').innerHTML = m.content;
+    document.getElementById('m-concept').innerText = m.concept;
+    document.getElementById('real-textarea').value = m.start;
+    updateEditor();
+}
 
-        // 解決 46
-        function copyExample() {
-            const example = "m_motor.set(m_stick.getY());";
-            navigator.clipboard.writeText(example);
-            alert("範例代碼已複製！");
+function deploy() {
+    const code = document.getElementById('real-textarea').value;
+    const m = curriculum[state.progress];
+    
+    if(m.check(code)) {
+        alert("DEPLOY 成功！現在請去右下角 Driver Station 點擊 ENABLE 測試！");
+        if(state.progress < curriculum.length - 1) {
+            state.progress++;
+            setTimeout(() => {
+                alert("下一關已解鎖！");
+                loadMission(state.progress);
+                document.getElementById('eval-score').innerText = Math.round((state.progress/2)*100) + "%";
+            }, 2000);
         }
-    </script>
+    } else {
+        document.getElementById('error-panel').classList.remove('hidden');
+        document.getElementById('err-msg').innerText = m.err;
+    }
+}
+
+function startPhysics() {
+    setInterval(() => {
+        if(Math.abs(state.motorSpeed) > 0.05) {
+            state.rotation += (state.motorSpeed * 20);
+            document.getElementById('motor-rotor').style.transform = `rotate(${state.rotation}deg)`;
+        }
+        document.getElementById('m-speed-text').innerText = Math.round(state.motorSpeed * 100) + "%";
+    }, 30);
+}
+
+window.onload = () => {
+    loadMission(0);
+    initJoystick();
+    startPhysics();
+};
+
+function undo() { if(state.codeHistory.length > 1) { state.codeHistory.pop(); document.getElementById('real-textarea').value = state.codeHistory.pop(); updateEditor(); } }
+function copySnippet() { 
+    const fullCode = "import edu.wpi.first.wpilibj.TimedRobot;\nimport edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;\nimport edu.wpi.first.wpilibj.Joystick;\n\npublic class Robot extends TimedRobot {\n  PWMVictorSPX m_motor = new PWMVictorSPX(0);\n  Joystick m_stick = new Joystick(0);\n\n  @Override\n  public void robotPeriodic() {\n    m_motor.set(m_stick.getY());\n  }\n}";
+    navigator.clipboard.writeText(fullCode); 
+    alert("完整 Robot.java 結構已複製到剪貼簿！"); 
+}
+</script>
 </body>
 </html>
