@@ -3,218 +3,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRC Mission Control v10 | The Foundation</title>
+    <title>FRC Mission Control v12 | 全功能實戰教練版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
-        body { background: #0a0f1e; color: #d1d5db; font-family: 'Fira Code', monospace; }
-        .course-card { background: #111827; border: 1px solid #1f2937; transition: 0.2s; }
-        .course-card:hover { border-color: #3b82f6; transform: translateY(-2px); }
-        .badge-java { background: #431407; color: #fb923c; font-size: 0.7rem; padding: 2px 8px; rounded: 4px; }
-        .badge-frc { background: #1e3a8a; color: #93c5fd; font-size: 0.7rem; padding: 2px 8px; rounded: 4px; }
-        .task-item { border-left: 2px solid #374151; padding-left: 1rem; margin-bottom: 0.5rem; }
-        .task-item.done { border-left-color: #10b981; opacity: 0.6; }
-        .code-block { background: #000; color: #10b981; padding: 1rem; border-radius: 0.5rem; font-size: 0.85rem; margin: 1rem 0; }
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
+        :root { --bg: #050505; --card: #121212; --primary: #3b82f6; --success: #10b981; --error: #ef4444; }
+        body { background: var(--bg); color: #e5e7eb; font-family: 'Fira Code', monospace; line-height: 1.6; }
+        .glass { background: rgba(18, 18, 18, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .motor-anim { width: 60px; height: 60px; border: 4px dashed #666; border-radius: 50%; transition: transform 0.5s linear; }
+        .code-input { background: #1a1a1a; color: #10b981; border: 1px solid #333; font-family: 'Fira Code', monospace; font-size: 0.9rem; }
+        .task-done { background: #064e3b !important; border-color: #10b981 !important; color: #a7f3d0 !important; }
+        .coach-msg { border-left: 4px solid var(--primary); background: rgba(59, 130, 246, 0.1); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-10">
 
-    <header class="max-w-4xl mx-auto mb-10">
-        <div class="flex justify-between items-end border-b border-slate-800 pb-4">
-            <div>
-                <h1 class="text-3xl font-black text-white tracking-tight">FOUNDATION_v10</h1>
-                <p class="text-blue-500 font-bold">從零開始的工程師修煉路徑</p>
+    <header class="max-w-6xl mx-auto mb-12">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-3xl font-black tracking-tighter text-white">FRC_COACH_v12 <span class="text-blue-500">.exe</span></h1>
+            <div id="overallStats" class="text-right">
+                <p class="text-xs text-slate-500">工程師養成率</p>
+                <div class="flex items-center space-x-2">
+                    <span id="globalPercent" class="text-2xl font-black text-blue-500">0%</span>
+                </div>
             </div>
-            <div class="text-right">
-                <p class="text-xs text-slate-500 uppercase">Training Progress</p>
-                <span id="globalProgress" class="text-2xl font-black text-green-500">0%</span>
-            </div>
+        </div>
+        <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
+            <div id="mainProgressBar" class="bg-blue-600 h-full w-0 transition-all duration-1000"></div>
         </div>
     </header>
 
-    <main id="app" class="max-w-4xl mx-auto space-y-10">
-        </main>
+    <main class="max-w-6xl mx-auto grid lg:grid-cols-3 gap-8">
+        
+        <aside class="lg:col-span-1 space-y-4">
+            <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">修煉階段</h2>
+            <div id="phaseNav" class="space-y-2">
+                </div>
+        </aside>
 
-    <div id="challengeModal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-blue-500 p-6 rounded-xl max-w-md w-full">
-            <h2 id="modalTitle" class="text-xl font-bold text-blue-400 mb-4">代碼實驗室</h2>
-            <p id="modalDesc" class="text-sm text-slate-400 mb-4"></p>
-            <div id="modalCode" class="code-block mb-4"></div>
-            <input id="modalInput" class="w-full bg-black border border-slate-700 p-3 rounded mb-4 text-green-500 outline-none focus:border-blue-500" placeholder="你的答案...">
-            <div class="flex space-x-2">
-                <button onclick="checkChallenge()" class="flex-1 bg-blue-600 py-2 rounded font-bold hover:bg-blue-500 transition">提交驗證</button>
-                <button onclick="closeModal()" class="flex-1 bg-slate-800 py-2 rounded font-bold hover:bg-slate-700 transition">取消</button>
+        <section class="lg:col-span-2 space-y-6">
+            <div id="activeMission" class="glass p-8 rounded-2xl shadow-2xl min-h-[600px]">
+                <div class="flex flex-col items-center justify-center h-full text-slate-500">
+                    <p>請從左側選擇一個修煉階段開始...</p>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
+
+    <div id="toast" class="fixed bottom-10 right-10 p-4 rounded-lg bg-blue-600 text-white shadow-2xl hidden transform transition-all translate-y-20"></div>
 
 <script>
-// ===== v10 完整工程師架構資料庫 =====
+// ===== 核心課程資料庫 (教練級設計：做+想+錯) =====
 const curriculum = [
     {
-        id: "p1",
-        phase: "Phase -1: Java 核心基礎",
-        description: "不碰機器人，先學會如何指揮電腦。這是所有代碼的起點。",
+        id: "java_var",
+        title: "Phase 1: Java 數據命脈",
+        desc: "馬達不會聽你的話，除非你先學會怎麼儲存數字。",
         missions: [
             {
-                id: "v_basic",
-                title: "1. 變數與容器",
-                badge: "JAVA",
+                id: "m1_1",
+                name: "定義馬達速度",
+                coachTip: "馬達速度範圍是 -1.0 到 1.0。整數 (int) 沒辦法表達 0.5，所以我們必須用浮點數 (double)。",
+                goal: "請在下方代碼框中宣告一個名為 'speed' 的 double 變數並設為 0.75。",
+                initCode: "// 在下方撰寫程式碼\n",
+                expected: "double speed = 0.75;",
                 tasks: [
-                    "理解 int (整數) 與 double (小數) 的差異",
-                    "練習：建立 int port = 1; 並理解其意義",
-                    "練習：建立 double speed = 0.5; (馬達通常用這個)",
-                    "💥 實驗：嘗試把 'Hello' 存進 int 變數，看看會發生什麼？",
-                    "🧠 思考：為什麼馬達速度不用 int 而要用 double？"
+                    "理解 int (整數) vs double (小數) 的差異",
+                    "撰寫正確的語法 (別漏掉分號 ;)",
+                    "觀察模擬器中的轉速變化"
                 ],
-                challenge: {
-                    title: "型態挑戰",
-                    desc: "在 Java 中，如果要儲存馬達的『速度百分比』（例如 0.75），該使用哪種資料型態？",
-                    code: "_____ motorSpeed = 0.75;",
-                    key: "double"
-                }
-            },
-            {
-                id: "v_logic",
-                title: "2. 邏輯判斷 (if)",
-                badge: "JAVA",
-                tasks: [
-                    "理解 if (條件) { 做事 } 的基本結構",
-                    "練習：寫出判斷按鈕是否按下的代碼",
-                    "理解 == (等於) 與 = (賦值) 的致命差異",
-                    "💥 實驗：故意少寫一個括號 }，觀察報錯訊息",
-                    "🧠 思考：如果機器人要偵測距離物體 < 10cm 就停下，if 該怎麼寫？"
-                ],
-                challenge: {
-                    title: "條件分支挑戰",
-                    desc: "請填入缺少的關鍵字，讓程式在按鈕 A 被按下時印出訊息：",
-                    code: "____ (buttonA == true) {\n  System.out.println(\"Pressed!\");\n}",
-                    key: "if"
-                }
+                showSim: true
             }
         ]
     },
     {
-        id: "p2",
-        phase: "Phase 0: FRC 實戰啟航",
-        description: "現在你有 Java 基礎了，我們來看看這些代碼如何驅動鋼鐵。",
+        id: "java_logic",
+        title: "Phase 2: 邏輯閘與決策",
+        desc: "機器人必須有大腦判斷何時該停下來。",
         missions: [
             {
-                id: "frc_setup",
-                title: "3. WPILib 環境與專案",
-                badge: "FRC",
+                id: "m2_1",
+                name: "按鈕觸發邏輯",
+                coachTip: "當按鈕被按下 (true) 時，馬達才轉動。這需要用到 if 語句。注意括號 { } 的成對關係。",
+                goal: "完成這個邏輯：如果 buttonA 是 true，就把 speed 設為 1.0。",
+                initCode: "boolean buttonA = true;\ndouble speed = 0.0;\n\n// 這裡開始寫 if 邏輯\n",
+                expected: "if(buttonA){speed=1.0;}", // 寬鬆判定會過濾空格
                 tasks: [
-                    "安裝 WPILib Installer (包含 Java JDK)",
-                    "建立一個 Timed Robot 專案",
-                    "找到 Robot.java 並理解其生命週期 (Init -> Periodic)",
-                    "點擊 Build Project 並確認出現 BUILD SUCCESSFUL",
-                    "💥 實驗：在 Robot.java 隨便打錯一個字，觀察編譯器的哀嚎"
+                    "使用 if (條件) { ... } 結構",
+                    "理解 boolean 布林值 (只有 true/false)",
+                    "解決『少寫括號』產生的編譯錯誤"
                 ],
-                challenge: {
-                    title: "編譯挑戰",
-                    desc: "將 Java 代碼轉成機器人能懂的二進位檔案，這個過程稱為什麼？",
-                    code: "> Task :compileJava _____ ",
-                    key: "build"
-                }
+                showSim: true
+            }
+        ]
+    },
+    {
+        id: "frc_base",
+        title: "Phase 3: WPILib 實戰結構",
+        desc: "這是 FRC 機器人程式的真正骨架。",
+        missions: [
+            {
+                id: "m3_1",
+                name: "認識 RobotPeriodic",
+                coachTip: "RobotPeriodic 每秒會執行 50 次。這是機器人的心跳，所有需要不斷偵測的東西都要放在這裡。",
+                goal: "在代碼註解處正確調用一次 System.out.println(\"Heartbeat\");",
+                initCode: "public void robotPeriodic() {\n  // 在這裡印出訊息\n}",
+                expected: "System.out.println(\"Heartbeat\");",
+                tasks: [
+                    "理解 20ms (50Hz) 的執行頻率",
+                    "學會使用 println 進行基本的 Debug 印字",
+                    "區分 Init (初始化) 與 Periodic (週期執行)"
+                ],
+                showSim: false
             }
         ]
     }
 ];
 
-let progress = JSON.parse(localStorage.getItem("v10_progress") || "{}");
-let activeChallenge = null;
+let userProgress = JSON.parse(localStorage.getItem("frc_v12_progress") || "{}");
+let activeMissionId = null;
 
-function render() {
-    const app = document.getElementById("app");
-    let totalTasks = 0;
-    let doneTasks = 0;
+// ===== 系統函數 =====
 
-    app.innerHTML = curriculum.map(p => `
-        <section class="space-y-6">
-            <div class="border-l-4 border-blue-600 pl-4">
-                <h2 class="text-2xl font-black text-white italic">${p.phase}</h2>
-                <p class="text-sm text-slate-500">${p.description}</p>
+function init() {
+    renderNav();
+    updateProgress();
+}
+
+function renderNav() {
+    const nav = document.getElementById("phaseNav");
+    nav.innerHTML = curriculum.map(phase => `
+        <div class="mb-6">
+            <h3 class="text-xs font-bold text-slate-400 mb-2 px-2 tracking-tighter">${phase.title}</h3>
+            <div class="space-y-1">
+                ${phase.missions.map(m => `
+                    <button onclick="loadMission('${m.id}')" 
+                        id="nav-btn-${m.id}"
+                        class="w-full text-left p-3 rounded-lg text-sm transition flex justify-between items-center ${activeMissionId === m.id ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 text-slate-400'}">
+                        <span>${m.name}</span>
+                        ${userProgress[m.id]?.done ? '<span class="text-green-400">●</span>' : '<span class="text-slate-600">○</span>'}
+                    </button>
+                `).join("")}
             </div>
-            
-            <div class="grid md:grid-cols-2 gap-4">
-                ${p.missions.map(m => {
-                    const mProgress = progress[m.id] || { tasks: [], solved: false };
-                    totalTasks += m.tasks.length;
-                    doneTasks += mProgress.tasks.length;
-
-                    return `
-                    <div class="course-card p-5 rounded-xl flex flex-col justify-between">
-                        <div>
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="${m.badge === 'JAVA' ? 'badge-java' : 'badge-frc'} font-bold rounded px-2 py-0.5 text-[10px] tracking-widest">${m.badge}</span>
-                                <span class="text-[10px] text-slate-600">${mProgress.tasks.length}/${m.tasks.length} DONE</span>
-                            </div>
-                            <h3 class="text-lg font-bold text-slate-200 mb-4">${m.title}</h3>
-                            <div class="space-y-2 mb-6">
-                                ${m.tasks.map((t, i) => `
-                                    <div class="task-item text-xs ${mProgress.tasks.includes(i) ? 'done' : ''} flex items-center justify-between">
-                                        <span>${t}</span>
-                                        <input type="checkbox" ${mProgress.tasks.includes(i) ? 'checked' : ''} 
-                                            onchange="toggleTask('${m.id}', ${i})" class="ml-2 accent-blue-500">
-                                    </div>
-                                `).join("")}
-                            </div>
-                        </div>
-                        
-                        <button onclick="openChallenge('${p.id}', '${m.id}')" 
-                            class="w-full py-2 rounded text-xs font-bold transition ${mProgress.solved ? 'bg-green-900/50 text-green-400 border border-green-800' : 'bg-blue-900/50 text-blue-400 border border-blue-800 hover:bg-blue-800 hover:text-white'}">
-                            ${mProgress.solved ? '✅ 挑戰已解鎖' : '⚔️ 開始代碼挑戰'}
-                        </button>
-                    </div>`;
-                }).join("")}
-            </div>
-        </section>
+        </div>
     `).join("");
-
-    document.getElementById("globalProgress").innerText = Math.round((doneTasks / totalTasks) * 100) + "%";
 }
 
-function toggleTask(mId, tIdx) {
-    if (!progress[mId]) progress[mId] = { tasks: [], solved: false };
-    const idx = progress[mId].tasks.indexOf(tIdx);
-    if (idx === -1) progress[mId].tasks.push(tIdx);
-    else progress[mId].tasks.splice(idx, 1);
-    save();
-}
-
-function openChallenge(pId, mId) {
-    const m = curriculum.find(p => p.id === pId).missions.find(mi => mi.id === mId);
-    activeChallenge = { mId, key: m.challenge.key };
+function loadMission(id) {
+    activeMissionId = id;
+    let mission = null;
+    curriculum.forEach(p => p.missions.forEach(m => { if(m.id === id) mission = m; }));
     
-    document.getElementById("modalTitle").innerText = m.challenge.title;
-    document.getElementById("modalDesc").innerText = m.challenge.desc;
-    document.getElementById("modalCode").innerText = m.challenge.code;
-    document.getElementById("challengeModal").classList.remove("hidden");
+    const container = document.getElementById("activeMission");
+    const p = userProgress[id] || { done: false, code: mission.initCode };
+
+    container.innerHTML = `
+        <div class="animate-in fade-in slide-in-from-right-4 duration-500">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 class="text-2xl font-black text-white mb-2">${mission.name}</h2>
+                    <p class="text-blue-400 text-sm font-bold uppercase tracking-widest">目標：${mission.goal}</p>
+                </div>
+                ${mission.showSim ? `
+                    <div class="text-center">
+                        <div id="motorSim" class="motor-anim mb-2"></div>
+                        <p class="text-[10px] text-slate-500">模擬馬達狀態</p>
+                    </div>
+                ` : ''}
+            </div>
+
+            <div class="coach-msg p-4 rounded-r-lg mb-6">
+                <p class="text-xs italic text-slate-300"><span class="font-bold text-blue-400">教練提示：</span>"${mission.coachTip}"</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-xs font-bold text-slate-500 mb-2 uppercase">代碼編輯器 (Java)</h3>
+                    <textarea id="editor" class="w-full h-64 p-4 rounded-lg code-input outline-none focus:ring-2 focus:ring-blue-500 transition">${p.code}</textarea>
+                    <button onclick="runCode('${mission.id}')" class="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-900/40">編譯並運行程式</button>
+                </div>
+
+                <div>
+                    <h3 class="text-xs font-bold text-slate-500 mb-2 uppercase">實作檢核表</h3>
+                    <div class="space-y-3">
+                        ${mission.tasks.map((t, idx) => `
+                            <div class="p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs flex items-center space-x-3">
+                                <div class="w-4 h-4 border border-slate-600 rounded flex items-center justify-center text-[8px]">
+                                    ${p.done ? '✔' : ''}
+                                </div>
+                                <span>${t}</span>
+                            </div>
+                        `).join("")}
+                    </div>
+
+                    <div id="console" class="mt-6 bg-black p-4 rounded-lg border border-slate-800 h-32 overflow-y-auto text-[10px] font-mono">
+                        <p class="text-slate-600">> 系統就緒，等待編譯...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    renderNav();
+    if(mission.showSim && p.done) updateMotorSim(1.0);
 }
 
-function checkChallenge() {
-    const input = document.getElementById("modalInput").value.toLowerCase().trim();
-    if (input === activeChallenge.key) {
-        progress[activeChallenge.mId].solved = true;
-        save();
-        alert("🎉 完美！你的邏輯通過了考驗。");
-        closeModal();
+function runCode(id) {
+    const input = document.getElementById("editor").value;
+    const con = document.getElementById("console");
+    let mission = null;
+    curriculum.forEach(p => p.missions.forEach(m => { if(m.id === id) mission = m; }));
+
+    con.innerHTML += `<p class="text-blue-400">> 正在編譯中...</p>`;
+
+    // 模擬編譯延遲
+    setTimeout(() => {
+        // 嚴格度判定：去除所有空格與換行進行對比
+        const cleanInput = input.replace(/\s/g, "");
+        const cleanExpected = mission.expected.replace(/\s/g, "");
+
+        if (cleanInput.includes(cleanExpected)) {
+            con.innerHTML += `<p class="text-green-400">> BUILD SUCCESSFUL</p>`;
+            con.innerHTML += `<p class="text-slate-300">> 執行結果：變數驗證成功，數值已套用。</p>`;
+            
+            userProgress[id] = { done: true, code: input };
+            save();
+            showToast("✅ 完美！這關你學會了。");
+            
+            if(mission.showSim) updateMotorSim(1.5);
+            
+            // 延遲更新 UI 讓效果明顯
+            setTimeout(() => loadMission(id), 1000);
+        } else {
+            con.innerHTML += `<p class="text-red-500">> BUILD FAILED: 語法錯誤或邏輯不匹配。</p>`;
+            con.innerHTML += `<p class="text-red-300">> 教練碎碎念：再檢查一下分號、大小寫，或是你是不是把變數名稱寫錯了？</p>`;
+            showToast("❌ 編譯失敗，檢查主控台訊息。");
+            updateMotorSim(0);
+        }
+    }, 800);
+}
+
+function updateMotorSim(speed) {
+    const motor = document.getElementById("motorSim");
+    if(!motor) return;
+    if(speed > 0) {
+        motor.style.borderColor = "#10b981";
+        motor.style.animation = `spin ${1/speed}s linear infinite`;
     } else {
-        alert("❌ 指令錯誤。再思考一下，或回去看任務提示。");
+        motor.style.borderColor = "#666";
+        motor.style.animation = "none";
     }
 }
 
-function closeModal() {
-    document.getElementById("challengeModal").classList.add("hidden");
-    document.getElementById("modalInput").value = "";
+// 模擬旋轉動畫 CSS
+const style = document.createElement('style');
+style.innerHTML = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+document.head.appendChild(style);
+
+function updateProgress() {
+    let total = 0;
+    let done = 0;
+    curriculum.forEach(p => p.missions.forEach(m => {
+        total++;
+        if(userProgress[m.id]?.done) done++;
+    }));
+    
+    const percent = Math.round((done/total)*100);
+    document.getElementById("globalPercent").innerText = percent + "%";
+    document.getElementById("mainProgressBar").style.width = percent + "%";
 }
 
 function save() {
-    localStorage.setItem("v10_progress", JSON.stringify(progress));
-    render();
+    localStorage.setItem("frc_v12_progress", JSON.stringify(userProgress));
+    updateProgress();
 }
 
-render();
+function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.innerText = msg;
+    t.classList.remove("hidden", "translate-y-20");
+    setTimeout(() => {
+        t.classList.add("translate-y-20");
+        setTimeout(() => t.classList.add("hidden"), 300);
+    }, 3000);
+}
+
+init();
 </script>
 </body>
 </html>
