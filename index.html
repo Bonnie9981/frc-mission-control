@@ -2,209 +2,234 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>FRC 初學者啟蒙基地 v18</title>
+    <title>FRC 工程師全實戰 v19 | 從零到比賽</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;900&family=JetBrains+Mono&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background: #f0f2f5; color: #1a1a1a; }
-        .code-font { font-family: 'JetBrains Mono', monospace; }
-        .step-active { background: white; border-left: 8px solid #3b82f6; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .motor-wheel { width: 120px; height: 120px; border: 10px solid #333; border-radius: 50%; position: relative; transition: transform 0.1s linear; }
-        .motor-wheel::after { content: ''; position: absolute; top: 0; left: 50%; width: 4px; height: 50%; background: red; transform: translateX(-50%); }
-        .hint-box { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
-        #login-screen { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); z-index: 1000; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: #0f172a; color: #f8fafc; height: 100vh; overflow: hidden; }
+        .code-editor { background: #000; color: #4ade80; font-family: 'JetBrains Mono', monospace; border: 1px solid #334155; }
+        .step-node { border-left: 4px solid #1e293b; transition: 0.3s; cursor: pointer; }
+        .step-node.active { border-left-color: #3b82f6; background: #1e293b; }
+        .step-node.completed { border-left-color: #22c55e; }
+        .joystick-base { width: 100px; height: 100px; background: #334155; border-radius: 50%; position: relative; }
+        .joystick-stick { width: 40px; height: 40px; background: #64748b; border-radius: 50%; position: absolute; top: 30px; left: 30px; cursor: grab; }
+        .motor-anim { width: 100px; height: 100px; border: 5px dashed #3b82f6; border-radius: 50%; }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="flex flex-col">
 
-    <div id="login-screen" class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-10 shadow-2xl max-w-sm w-full text-center">
-            <div class="mb-6">
-                <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-3xl">🤖</span>
-                </div>
-                <h1 class="text-2xl font-black">FRC 新手教室</h1>
-                <p class="text-gray-400 text-sm mt-1">第一次碰機器人？別擔心，跟我來！</p>
-            </div>
-            <input id="u-id" type="text" placeholder="你的名字 (學員代號)" class="w-full p-4 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-blue-500">
-            <button onclick="startJourney()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition">開始學習</button>
-            <p class="mt-6 text-[10px] text-gray-400 uppercase tracking-widest">Team Access Code: FRC2026</p>
+    <div id="login-layer" class="fixed inset-0 bg-slate-950 z-[100] flex items-center justify-center">
+        <div class="bg-slate-900 p-10 rounded-2xl border border-slate-800 w-96 text-center">
+            <h1 class="text-2xl font-black mb-6 tracking-tighter">PROJECT_TITAN 登入</h1>
+            <input id="u-name" type="text" placeholder="學員姓名" class="w-full p-3 bg-slate-800 rounded mb-4 outline-none border border-slate-700">
+            <button onclick="doLogin()" class="w-full bg-blue-600 py-3 rounded font-bold hover:bg-blue-500 transition">進入開發環境</button>
+            <p class="mt-4 text-[10px] text-slate-500">存檔將保存在此瀏覽器</p>
         </div>
     </div>
 
-    <header class="bg-white border-b p-4 flex justify-between items-center shadow-sm">
-        <div class="flex items-center space-x-3">
-            <span class="bg-blue-600 text-white p-2 rounded-lg font-black italic">FRC</span>
-            <h2 class="font-bold text-lg">工程師修煉手冊 <span id="user-tag" class="text-blue-500 font-normal"></span></h2>
+    <header class="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/50">
+        <div class="flex items-center space-x-4">
+            <span class="bg-blue-600 px-2 py-1 rounded text-xs font-black">v19</span>
+            <h2 class="font-bold">FRC 實戰教室：<span id="display-name" class="text-blue-400">---</span></h2>
         </div>
         <div class="flex items-center space-x-4">
             <div class="text-right">
-                <p class="text-[10px] text-gray-400 uppercase font-bold">目前進度</p>
-                <div class="w-32 h-2 bg-gray-200 rounded-full mt-1 overflow-hidden">
-                    <div id="p-bar" class="h-full bg-green-500 w-0 transition-all duration-1000"></div>
+                <p class="text-[10px] text-slate-500 font-bold">解鎖進度</p>
+                <div class="w-40 h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
+                    <div id="p-bar" class="h-full bg-blue-500 w-0 transition-all duration-500"></div>
                 </div>
             </div>
-            <button onclick="logout()" class="text-xs text-gray-400 hover:text-red-500">登出</button>
+            <button onclick="logout()" class="text-xs text-slate-500 hover:text-red-400">登出</button>
         </div>
     </header>
 
     <main class="flex-1 flex overflow-hidden">
-        <aside class="w-72 bg-gray-50 border-r p-4 space-y-2 overflow-y-auto">
-            <p class="text-[10px] font-bold text-gray-400 mb-4 px-2 uppercase tracking-widest">學習路線圖</p>
-            <div id="nav-list"></div>
+        <aside class="w-64 border-r border-slate-800 bg-slate-900/30 overflow-y-auto p-4 space-y-2">
+            <p class="text-[10px] text-slate-500 font-bold px-2 mb-4">MISSION_LOG</p>
+            <div id="nav-container"></div>
         </aside>
 
-        <section class="flex-1 p-8 overflow-y-auto space-y-8 bg-white">
-            <div id="lesson-content">
-                </div>
+        <section class="flex-1 flex flex-col p-6 space-y-6 overflow-y-auto">
+            <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-xl">
+                <h3 id="task-title" class="text-xl font-bold mb-2">載入中...</h3>
+                <p id="task-desc" class="text-sm text-slate-400 leading-relaxed"></p>
+                <div id="edu-tip" class="mt-4 p-3 bg-blue-900/20 border-l-4 border-blue-500 text-xs text-blue-300"></div>
+            </div>
 
-            <div class="bg-slate-900 rounded-2xl p-6 shadow-xl relative">
-                <div class="absolute -top-3 left-6 bg-blue-500 text-white text-[10px] px-3 py-1 rounded-full font-bold">機器人聽得懂的語言 (Java)</div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    <div class="space-y-4">
-                        <p class="text-xs text-slate-400 underline italic">你只要在這裡輸入關鍵字：</p>
-                        <textarea id="code-box" class="w-full h-40 bg-black text-green-400 p-4 rounded-xl code-font text-sm outline-none border border-slate-700 focus:border-blue-500" placeholder="請依照上方指示填寫..."></textarea>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                        <p class="text-xs text-slate-400 mb-2 font-bold">白話文翻譯機：</p>
-                        <div id="translation" class="text-sm text-blue-200 italic space-y-2">
-                            等待輸入中...
-                        </div>
-                    </div>
+            <div class="relative flex-1 flex flex-col min-h-[400px]">
+                <div class="absolute top-2 right-4 text-[10px] text-slate-600 font-mono italic">Robot.java</div>
+                <textarea id="editor" class="code-editor flex-1 p-6 rounded-xl outline-none resize-none text-sm leading-relaxed" spellcheck="false"></textarea>
+                <div class="mt-4 flex space-x-4">
+                    <button onclick="runCode()" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-xl shadow-lg transition transform active:scale-95">
+                        編譯並部署 (DEPLOY)
+                    </button>
                 </div>
-                <button onclick="checkAnswer()" class="mt-6 w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl transition">
-                    執行！讓機器人動起來
-                </button>
             </div>
         </section>
 
-        <aside class="w-80 bg-gray-900 flex flex-col p-6 text-white border-l border-slate-800">
-            <div class="text-center space-y-8">
-                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest italic">實體模擬視窗</h3>
+        <aside class="w-80 bg-black/40 border-l border-slate-800 p-6 flex flex-col space-y-10">
+            <div class="text-center">
+                <p class="text-[10px] text-slate-500 font-bold mb-6 tracking-widest italic">HARDWARE_SIMULATOR</p>
                 <div class="flex justify-center">
-                    <div id="m-wheel" class="motor-wheel"></div>
+                    <div id="motor-vis" class="motor-anim flex items-center justify-center">
+                        <div class="w-1 h-12 bg-white rounded-full"></div>
+                    </div>
                 </div>
-                <div class="space-y-4 text-left">
-                    <div class="bg-black/50 p-4 rounded-xl border border-slate-800">
-                        <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">馬達狀態</p>
-                        <p id="m-status" class="text-sm text-blue-400 font-bold">停止中 (0.0)</p>
+                <p id="speed-tag" class="mt-4 text-2xl font-black">0%</p>
+                <p class="text-[10px] text-slate-500 uppercase">馬達出力 (PWM 0)</p>
+            </div>
+
+            <div class="border-t border-slate-800 pt-10">
+                <p class="text-[10px] text-slate-500 font-bold mb-4">控制器輸入 (HID)</p>
+                <div class="flex justify-center mb-4">
+                    <div class="joystick-base">
+                        <div id="joy-stick" class="joystick-stick"></div>
                     </div>
-                    <div id="wiring-pic" class="bg-slate-800 h-32 rounded-xl border border-slate-700 flex items-center justify-center text-[10px] text-slate-500 p-4 text-center">
-                        [ 此處顯示硬體接線示意圖 ]
-                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-[10px]">
+                    <div class="bg-slate-900 p-2 rounded">Axis Y: <span id="axis-val" class="text-blue-400">0.0</span></div>
+                    <div class="bg-slate-900 p-2 rounded">Button A: <span id="btn-val" class="text-red-500">OFF</span></div>
                 </div>
             </div>
-            <div class="mt-auto pt-6 border-t border-slate-800 text-[10px] text-slate-500 leading-relaxed">
-                學弟妹加油！如果有報錯訊息看不懂，請截圖傳給學長。
+
+            <div class="flex-1 bg-black rounded p-4 font-mono text-[10px] overflow-y-auto mt-4 border border-slate-800">
+                <p class="text-slate-600">>> RIO_LOG:</p>
+                <div id="rio-log" class="text-slate-400 mt-2 space-y-1"></div>
             </div>
         </aside>
     </main>
 
 <script>
-// --- 初學者專屬課程數據 ---
-const lessons = [
+// --- [實戰課程體系] ---
+const courses = [
     {
-        id: 0,
-        title: "認識你的大腦：宣告",
-        desc: "<h2 class='text-2xl font-black mb-4'>第一步：這顆馬達叫什麼名字？</h2><p class='text-gray-600 leading-loose'>想像你在跟機器人介紹新朋友。我們要告訴機器人：『這是一個馬達，它的名字叫 <span class='bg-yellow-200 px-1 font-bold text-black'>m_motor</span>』。</p>",
-        hint: "💡 教練教學：在 Java 中，我們寫類別名稱 (PWMVictorSPX) 然後空一格寫名字 (m_motor)。",
-        initCode: "// 請在下方輸入：PWMVictorSPX m_motor;",
-        solution: "PWMVictorSPX m_motor;",
-        translate: "機器人：『喔！我知道了，有一顆馬達叫做 m_motor。』",
-        wiring: "🔌 接線：請確保馬達訊號線插在 RoboRIO 的 PWM 0 位置。"
+        title: "01. 定義實體馬達",
+        desc: "歡迎來到 FRC！首先，我們要讓程式知道硬體在哪。請在類別中宣告一個 <b>PWMVictorSPX</b> 類型的變數 <b>m_motor</b>，並在 <b>robotInit</b> 中將它指向 <b>PWM 0</b>。",
+        tip: "💡 你學到：如何建立硬體連結。沒有這一行，程式就找不到馬達。",
+        startCode: "public class Robot extends TimedRobot {\n  PWMVictorSPX m_motor;\n\n  public void robotInit() {\n    // 寫下：m_motor = new PWMVictorSPX(0);\n  }\n}",
+        check: (c) => c.includes("m_motor = new PWMVictorSPX(0);")
     },
     {
-        id: 1,
-        title: "大開殺戒：轉動！",
-        desc: "<h2 class='text-2xl font-black mb-4'>第二步：命令它旋轉</h2><p class='text-gray-600 leading-loose'>有了名字後，我們就可以命令它。指令很簡單：<span class='bg-blue-100 text-blue-600 px-1 font-bold'>m_motor.set(0.5);</span></p>",
-        hint: "💡 教練教學：set 括號裡面的數字代表力道。0.5 就是用 50% 的力量轉。別忘了分號 ; 像是句點。",
-        initCode: "m_motor.",
-        solution: "m_motor.set(0.5);",
-        translate: "機器人：『收到命令！m_motor，用 50% 的力量轉起來！』",
-        wiring: "🔋 電力：檢查 12V 電池電壓是否正常。"
+        title: "02. 讀取搖桿數值",
+        desc: "比賽是人在打的！我們要宣告一個 <b>Joystick</b> 叫做 <b>m_stick</b>，並連接到 USB 0。這能讓我們抓到人類的指令。",
+        tip: "💡 你學到：輸入 (Input) 的概念。搖桿的數值會從 1.0 (推到底) 到 -1.0 (往後拉)。",
+        startCode: "public class Robot extends TimedRobot {\n  Joystick m_stick = new Joystick(0);\n  \n  public void robotPeriodic() {\n    // 練習取得 Y 軸數值：double y = m_stick.getY();\n  }\n}",
+        check: (c) => c.includes("m_stick.getY()")
+    },
+    {
+        title: "03. 搖桿連動馬達",
+        desc: "現在把輸入傳給輸出！在 <b>robotPeriodic</b> 裡寫下 <code>m_motor.set(m_stick.getY());</code>。這樣你推搖桿，馬達就會跟著轉！",
+        tip: "💡 你學到：FRC 最核心的控制閉環。人類動作 -> 搖桿讀值 -> 傳給馬達。",
+        startCode: "public void robotPeriodic() {\n  // 讓搖桿控制馬達：m_motor.set( ... );\n}",
+        check: (c) => c.includes("m_motor.set(m_stick.getY())")
     }
 ];
 
-let state = { user: "", progress: 0 };
+let userData = { name: "", progress: 0 };
 let currentRotation = 0;
-let motorSpeed = 0;
+let simSpeed = 0;
 
-function startJourney() {
-    const name = document.getElementById('u-id').value;
-    if(!name) return alert("請輸入你的名字，讓教練認識你！");
-    state.user = name;
-    localStorage.setItem("frc_rookie", JSON.stringify(state));
-    document.getElementById('login-screen').classList.add('hidden');
+function doLogin() {
+    const n = document.getElementById('u-name').value;
+    if(!n) return alert("請輸入姓名");
+    userData.name = n;
+    localStorage.setItem("frc_v19_save", JSON.stringify(userData));
+    document.getElementById('login-layer').classList.add('hidden');
     initApp();
 }
 
 function initApp() {
-    document.getElementById('user-tag').innerText = `(${state.user})`;
+    document.getElementById('display-name').innerText = userData.name;
     renderNav();
-    loadLesson(state.progress);
-    animateMotor();
+    loadStep(userData.progress);
+    setInterval(updatePhysics, 30);
 }
 
 function renderNav() {
-    const list = document.getElementById('nav-list');
-    list.innerHTML = lessons.map((l, idx) => `
-        <div id="node-${idx}" onclick="loadLesson(${idx})" class="p-4 rounded-xl cursor-pointer transition text-sm ${idx === state.progress ? 'step-active font-bold text-blue-600' : 'text-gray-400 hover:bg-gray-100'}">
-            <span class="text-[10px] block opacity-50">LESSON 0${idx+1}</span>
-            ${l.title}
+    const cont = document.getElementById('nav-container');
+    cont.innerHTML = courses.map((c, i) => `
+        <div onclick="loadStep(${i})" class="step-node p-4 mb-2 text-sm ${i === userData.progress ? 'active' : ''} ${i < userData.progress ? 'completed' : ''}">
+            <p class="text-[9px] opacity-50 font-mono">MISSION_0${i+1}</p>
+            <p class="font-bold ${i <= userData.progress ? 'text-slate-200' : 'text-slate-600'}">${c.title}</p>
         </div>
     `).join("");
-    document.getElementById('p-bar').style.width = (state.progress / (lessons.length-1) * 100) + "%";
+    document.getElementById('p-bar').style.width = (userData.progress / courses.length * 100) + "%";
 }
 
-function loadLesson(idx) {
-    if(idx > state.progress) return; // 沒解鎖不能看
-    const l = lessons[idx];
-    document.getElementById('lesson-content').innerHTML = l.desc + `<div class="hint-box p-4 rounded-xl text-sm mt-4 italic">${l.hint}</div>`;
-    document.getElementById('code-box').value = l.initCode;
-    document.getElementById('wiring-pic').innerText = l.wiring;
-    document.getElementById('translation').innerText = "等待代碼輸入...";
+function loadStep(idx) {
+    if(idx > userData.progress) return;
+    const s = courses[idx];
+    document.getElementById('task-title').innerText = s.title;
+    document.getElementById('task-desc').innerHTML = s.desc;
+    document.getElementById('edu-tip').innerHTML = s.tip;
+    document.getElementById('editor').value = s.startCode;
 }
 
-function checkAnswer() {
-    const input = document.getElementById('code-box').value.trim();
-    const l = lessons[state.progress];
+function runCode() {
+    const code = document.getElementById('editor').value;
+    const step = courses[userData.progress];
     
-    if(input.replace(/\s/g, "") === l.solution.replace(/\s/g, "")) {
-        document.getElementById('translation').innerHTML = `✅ <span class='text-green-400'>${l.translate}</span>`;
-        if(state.progress === 1) motorSpeed = 0.5;
-        
-        if(state.progress < lessons.length - 1) {
-            state.progress++;
-            localStorage.setItem("frc_rookie", JSON.stringify(state));
-            setTimeout(() => { alert("太棒了！你剛學會了人生中第一行機器人程式碼！"); renderNav(); loadLesson(state.progress); }, 1000);
+    logRio("編譯中 (Building Gradle)...", "slate-500");
+    
+    setTimeout(() => {
+        if(step.check(code)) {
+            logRio("Deploy 成功！機器人已更新。", "green-400");
+            if(userData.progress === 2) {
+                logRio("模擬搖桿已激活，請拉動搖桿測試馬達！", "blue-400");
+                enableJoystickControl();
+            }
+            
+            if(userData.progress < courses.length - 1) {
+                userData.progress++;
+                localStorage.setItem("frc_v19_save", JSON.stringify(userData));
+                setTimeout(() => { alert("任務完成！解鎖下一階段。"); renderNav(); loadStep(userData.progress); }, 1000);
+            } else {
+                alert("恭喜！你學會了 FRC 基礎控制邏輯！");
+            }
         } else {
-            alert("第一階段修煉完成！你已經不是純小白了！");
+            logRio("錯誤：語法不匹配任務要求，請再試一次。", "red-400");
         }
-    } else {
-        document.getElementById('translation').innerHTML = `❌ <span class='text-red-400'>語法好像怪怪的... 再檢查一下分號或大小寫？</span>`;
-        motorSpeed = 0;
+    }, 800);
+}
+
+function enableJoystickControl() {
+    const stick = document.getElementById('joy-stick');
+    stick.onmousedown = (e) => {
+        document.onmousemove = (ev) => {
+            let y = (ev.clientY - stick.parentElement.getBoundingClientRect().top - 50) / 50;
+            y = Math.max(-1, Math.min(1, y));
+            stick.style.top = (30 + y * 30) + "px";
+            simSpeed = -y; // FRC 搖桿往前推通常是負數或看設定，這裡模擬正向
+            document.getElementById('axis-val').innerText = (-y).toFixed(2);
+        };
+        document.onmouseup = () => {
+            document.onmousemove = null;
+            stick.style.top = "30px";
+            simSpeed = 0;
+            document.getElementById('axis-val').innerText = "0.00";
+        };
+    };
+}
+
+function updatePhysics() {
+    if(Math.abs(simSpeed) > 0.05) {
+        currentRotation += (simSpeed * 20);
+        document.getElementById('motor-vis').style.transform = `rotate(${currentRotation}deg)`;
     }
+    document.getElementById('speed-tag').innerText = Math.round(simSpeed * 100) + "%";
 }
 
-function animateMotor() {
-    setInterval(() => {
-        if(motorSpeed > 0) {
-            currentRotation += (motorSpeed * 30);
-            document.getElementById('m-wheel').style.transform = `rotate(${currentRotation}deg)`;
-            document.getElementById('m-status').innerText = `轉動中 (${motorSpeed})`;
-            document.getElementById('m-status').classList.replace('text-blue-400', 'text-green-400');
-        } else {
-            document.getElementById('m-status').innerText = `停止中 (0.0)`;
-            document.getElementById('m-status').classList.replace('text-green-400', 'text-blue-400');
-        }
-    }, 30);
+function logRio(msg, color) {
+    const log = document.getElementById('rio-log');
+    log.innerHTML += `<p class="text-${color}">> ${msg}</p>`;
+    log.scrollTop = log.scrollHeight;
 }
 
-function logout() { localStorage.removeItem("frc_rookie"); location.reload(); }
+function logout() { localStorage.removeItem("frc_v19_save"); location.reload(); }
 
 window.onload = () => {
-    const saved = localStorage.getItem("frc_rookie");
-    if(saved) { state = JSON.parse(saved); document.getElementById('login-screen').classList.add('hidden'); initApp(); }
+    const saved = localStorage.getItem("frc_v19_save");
+    if(saved) { userData = JSON.parse(saved); document.getElementById('login-layer').classList.add('hidden'); initApp(); }
 };
 </script>
 </body>
