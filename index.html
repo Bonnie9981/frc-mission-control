@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>FRC Mission Control v3</title>
+<title>FRC Mission Control v4</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -13,19 +13,26 @@ body { background:#0f172a; color:#e2e8f0;}
 .card:hover { transform: translateY(-5px);}
 .locked { opacity:0.3; pointer-events:none;}
 </style>
-
 </head>
 
 <body>
 
-<!-- Navbar -->
+<!-- Login -->
+<div id="login" class="flex flex-col items-center justify-center h-screen">
+<h1 class="text-2xl mb-4">登入 Mission Control</h1>
+<input id="username" placeholder="輸入名字" class="text-black p-2 mb-2">
+<button onclick="login()" class="bg-blue-500 px-4 py-2">登入</button>
+</div>
+
+<!-- App -->
+<div id="app" class="hidden">
+
 <nav class="bg-slate-900 p-4 flex justify-between">
-<div class="text-xl text-blue-400 font-bold">🚀 FRC Mission Control</div>
+<div class="text-blue-400 font-bold">🚀 FRC Mission Control</div>
 <div class="space-x-4">
 <button onclick="showView('dashboard')">課程</button>
-<button onclick="showView('resources')">資源</button>
-<button onclick="showView('terms')">術語</button>
-<button onclick="showView('mentor')">Mentor</button>
+<button onclick="showView('debug')">Debug</button>
+<button onclick="showView('rank')">排行榜</button>
 </div>
 </nav>
 
@@ -33,156 +40,147 @@ body { background:#0f172a; color:#e2e8f0;}
 
 <!-- Dashboard -->
 <div id="dashboard">
-<h1 class="text-3xl mb-4">學習路線</h1>
 <div id="courses" class="grid md:grid-cols-2 gap-4"></div>
 </div>
 
 <!-- Lesson -->
 <div id="lesson" class="hidden">
-<button onclick="showView('dashboard')" class="mb-4 text-blue-400">← 返回</button>
+<button onclick="showView('dashboard')">← 返回</button>
 <div id="lessonContent"></div>
 </div>
 
-<!-- Resources -->
-<div id="resources" class="hidden">
-<h2 class="text-2xl mb-4">資源</h2>
-<a href="https://docs.wpilib.org/" target="_blank">WPILib Docs</a>
+<!-- Debug -->
+<div id="debug" class="hidden">
+<h2 class="text-xl mb-2">Debug 紀錄</h2>
+<input id="bug" placeholder="問題..." class="text-black p-2">
+<input id="fix" placeholder="解法..." class="text-black p-2">
+<button onclick="addDebug()" class="bg-green-500 px-2">新增</button>
+<ul id="debugList"></ul>
 </div>
 
-<!-- Terms -->
-<div id="terms" class="hidden">
-<h2 class="text-2xl mb-4">術語表</h2>
-<ul>
-<li>CAN Bus：機器人內部通訊系統</li>
-<li>RoboRIO：機器人大腦</li>
-<li>TalonSRX：馬達控制器</li>
-</ul>
+<!-- Rank -->
+<div id="rank" class="hidden">
+<h2 class="text-xl mb-2">排行榜</h2>
+<ul id="rankList"></ul>
 </div>
 
-<!-- Mentor -->
-<div id="mentor" class="hidden">
-<h2 class="text-2xl mb-4">Mentor</h2>
-<p>有問題請找學長或幹部 👍</p>
 </div>
-
 </div>
 
 <script>
 
-// ===== 課程 =====
-const lessons = [
+// ===== 使用者 =====
+let user = localStorage.getItem("user");
 
+function login(){
+user = document.getElementById("username").value;
+localStorage.setItem("user",user);
+startApp();
+}
+
+function startApp(){
+document.getElementById("login").classList.add("hidden");
+document.getElementById("app").classList.remove("hidden");
+renderCourses();
+renderRank();
+renderDebug();
+}
+
+if(user) startApp();
+
+// ===== 課程 =====
+const lessons=[
 {
 id:"setup",
 title:"環境建置",
-desc:"安裝開發環境",
-level:"🟢 Rookie",
-content:"安裝 VSCode + WPILib",
-quiz:{
-q:"WPILib 是什麼？",
-a:"robot library"
+level:"🟢",
+quiz:"wpilib",
+tasks:["安裝VSCode","安裝WPILib"]
 },
-tasks:["完成安裝"]
-},
-
 {
 id:"basic",
-title:"Java 基礎",
-desc:"學語法",
-level:"🔵 基礎",
-content:"變數、if、for",
-quiz:{
-q:"int 是什麼？",
-a:"變數型態"
+title:"Java",
+level:"🔵",
+quiz:"int",
+tasks:["寫變數","寫if"]
 },
-tasks:["理解語法"]
-},
-
 {
 id:"adv",
-title:"PID 控制",
-desc:"控制系統",
-level:"🟣 進階",
-content:"error = target - current",
-quiz:{
-q:"P 代表？",
-a:"比例"
-},
-tasks:["理解PID"]
+title:"PID",
+level:"🟣",
+quiz:"p",
+tasks:["調整PID"]
 }
-
 ];
 
 // ===== 進度 =====
-let progress = JSON.parse(localStorage.getItem("progress")||"{}");
+let progress=JSON.parse(localStorage.getItem("progress")||"{}");
 
 // ===== 顯示 =====
 function showView(v){
-["dashboard","lesson","resources","terms","mentor"].forEach(id=>{
-document.getElementById(id).classList.add("hidden");
+["dashboard","lesson","debug","rank"].forEach(x=>{
+document.getElementById(x).classList.add("hidden");
 });
 document.getElementById(v).classList.remove("hidden");
 }
 
 // ===== 鎖關 =====
-function isLocked(l){
-if(l.level==="🟣 進階" && !progress["basic"]) return true;
+function locked(l){
+if(l.level==="🟣" && !progress["basic"]?.quiz) return true;
 return false;
 }
 
-// ===== 渲染 =====
+// ===== 課程列表 =====
 function renderCourses(){
 const el=document.getElementById("courses");
 
 el.innerHTML=lessons.map(l=>{
-let done=(progress[l.id]||[]).length;
-let percent=Math.round(done/l.tasks.length*100||0);
-let locked=isLocked(l);
+
+let done=(progress[l.id]?.tasks||[]).length;
+let total=l.tasks.length;
 
 return `
-<div class="card p-4 border border-slate-700 rounded ${locked?'locked':''}"
-onclick="${locked?'':`openLesson('${l.id}')`}">
+<div class="card p-4 border border-slate-700 rounded ${locked(l)?'locked':''}"
+onclick="${locked(l)?'':`openLesson('${l.id}')`}">
 
-<div class="text-blue-400 text-sm">${l.level}</div>
-<h3 class="text-xl font-bold">${l.title}</h3>
-<p>${l.desc}</p>
+${l.level}
+<h3>${l.title}</h3>
 
-${locked ? '🔒 鎖定' : ''}
+${locked(l)?'🔒':''}
 
-<div>${done}/${l.tasks.length}</div>
-<div class="bg-slate-700 h-2">
-<div class="bg-blue-500 h-2" style="width:${percent}%"></div>
-</div>
+${done}/${total}
 
-</div>
-`;
+</div>`;
 }).join("");
 }
 
 // ===== 打開課程 =====
 function openLesson(id){
-const l=lessons.find(x=>x.id===id);
-const done=progress[id]||[];
+let l=lessons.find(x=>x.id===id);
+let p=progress[id]||{quiz:false,tasks:[]};
 
 document.getElementById("lessonContent").innerHTML=`
 
-<h2 class="text-2xl mb-2">${l.title}</h2>
-<p class="mb-4">${l.content}</p>
+<h2>${l.title}</h2>
 
-<h3>測驗</h3>
-<input id="quizAnswer" class="text-black">
-<button onclick="checkQuiz('${id}','${l.quiz.a}')">提交</button>
+<h3>Quiz（通過才解鎖任務）</h3>
+<input id="q">
+<button onclick="checkQuiz('${id}','${l.quiz}')">提交</button>
 
-<h3 class="mt-4">任務</h3>
+${p.quiz?'<p>✅ 已通過</p>':''}
+
+<h3>任務</h3>
 
 ${l.tasks.map(t=>`
 <div>
 <input type="checkbox"
-${done.includes(t)?"checked":""}
-disabled>
+${p.tasks.includes(t)?"checked":""}
+${!p.quiz?"disabled":""}
+onclick="toggleTask('${id}','${t}')">
 ${t}
 </div>
 `).join("")}
+
 `;
 
 showView("lesson");
@@ -190,16 +188,64 @@ showView("lesson");
 
 // ===== Quiz =====
 function checkQuiz(id,ans){
-let input=document.getElementById("quizAnswer").value;
+let input=document.getElementById("q").value.toLowerCase();
 
-if(input===ans){
-progress[id]=["done"];
-localStorage.setItem("progress",JSON.stringify(progress));
-alert("🎉 正確！");
-renderCourses();
+if(input.includes(ans)){
+if(!progress[id]) progress[id]={quiz:true,tasks:[]};
+else progress[id].quiz=true;
+
+save();
+alert("✅ 通過");
+openLesson(id);
 }else{
-alert("❌ 再試一次");
+alert("❌ 再試");
 }
+}
+
+// ===== 任務 =====
+function toggleTask(id,t){
+let p=progress[id];
+if(!p.tasks.includes(t)) p.tasks.push(t);
+else p.tasks=p.tasks.filter(x=>x!==t);
+
+save();
+renderCourses();
+}
+
+// ===== Debug =====
+function addDebug(){
+let bug=document.getElementById("bug").value;
+let fix=document.getElementById("fix").value;
+
+let logs=JSON.parse(localStorage.getItem("debug")||"[]");
+logs.push({user,bug,fix});
+
+localStorage.setItem("debug",JSON.stringify(logs));
+renderDebug();
+}
+
+function renderDebug(){
+let logs=JSON.parse(localStorage.getItem("debug")||"[]");
+document.getElementById("debugList").innerHTML=
+logs.map(l=>`<li>${l.user}: ${l.bug} → ${l.fix}</li>`).join("");
+}
+
+// ===== 排行榜 =====
+function renderRank(){
+let logs=JSON.parse(localStorage.getItem("progress")||"{}");
+
+let score=Object.entries(logs).map(([k,v])=>{
+return {user,score:(v.tasks||[]).length};
+});
+
+document.getElementById("rankList").innerHTML=
+score.map(s=>`<li>${s.user}: ${s.score}</li>`).join("");
+}
+
+// ===== 儲存 =====
+function save(){
+localStorage.setItem("progress",JSON.stringify(progress));
+renderRank();
 }
 
 // 初始化
