@@ -3,38 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FRC Mission Control</title>
+<title>FRC Mission Control v2</title>
 
-<!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Code Highlight -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
 <style>
 body { background: #0f172a; color: #e2e8f0; }
 .card:hover { transform: translateY(-5px); }
+.locked { opacity: 0.3; pointer-events: none; }
 </style>
-
 </head>
-<body class="min-h-screen">
+
+<body>
 
 <!-- Navbar -->
-<nav class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between sticky top-0">
-  <div class="font-bold text-xl text-blue-400">🚀 FRC Mission Control</div>
-  <div class="space-x-4">
-    <button onclick="showView('dashboard')">課程</button>
+<nav class="bg-slate-900 p-4 flex justify-between">
+  <div class="text-xl text-blue-400 font-bold">🚀 FRC Mission Control</div>
+  <div>
+    <button onclick="showView('dashboard')" class="mr-4">課程</button>
     <button onclick="showView('resources')">資源</button>
   </div>
 </nav>
 
-<!-- MAIN -->
 <div class="p-6 max-w-6xl mx-auto">
 
 <!-- Dashboard -->
 <div id="dashboard">
-  <h1 class="text-3xl mb-4 font-bold">學習儀表板</h1>
+  <h1 class="text-3xl mb-4">學習路線</h1>
   <div id="courses" class="grid md:grid-cols-2 gap-4"></div>
 </div>
 
@@ -46,85 +44,128 @@ body { background: #0f172a; color: #e2e8f0; }
 
 <!-- Resources -->
 <div id="resources" class="hidden">
-  <h2 class="text-2xl mb-4">資源庫</h2>
-  <div class="space-y-3">
-    <a href="https://docs.wpilib.org/" target="_blank" class="block bg-slate-800 p-3 rounded">WPILib Docs</a>
-    <a href="https://github.com/wpilibsuite/allwpilib" target="_blank" class="block bg-slate-800 p-3 rounded">WPILib GitHub</a>
-  </div>
+  <h2 class="text-2xl mb-4">資源</h2>
+  <a href="https://docs.wpilib.org/" target="_blank">WPILib Docs</a>
 </div>
 
 </div>
 
 <script>
 
-// ===== 課程資料 =====
+// ===== 課程系統 =====
 const lessons = [
+
 {
-  id:"l1",
-  title:"FRC 基礎",
-  desc:"了解比賽與團隊",
-  code:"// 無程式碼",
-  tasks:["看規則","了解分工"]
+id:"rookie-1",
+title:"Rookie 101",
+desc:"認識 FRC",
+level:"🟢 Rookie",
+code:"// 無程式碼",
+tasks:["看規則","了解分工","安全知識"]
 },
+
 {
-  id:"l2",
-  title:"Java / WPILib",
-  desc:"寫第一個機器人",
-  code:`public class Robot {
-  public void robotInit(){}
-}`,
-  tasks:["安裝WPILib","跑範例"]
+id:"basic-1",
+title:"Java 基礎",
+desc:"基本語法",
+level:"🔵 基礎",
+code:`int x = 5;
+System.out.println(x);`,
+tasks:["理解變數","寫if","寫for"]
+},
+
+{
+id:"basic-2",
+title:"WPILib",
+desc:"建立專案",
+level:"🔵 基礎",
+code:`public class Robot {}`,
+tasks:["安裝WPILib","成功deploy"]
+},
+
+{
+id:"adv-1",
+title:"PID 控制",
+desc:"穩定控制",
+level:"🟣 進階",
+code:`double output = error * kP;`,
+tasks:["理解PID","調整數值"]
+},
+
+{
+id:"pro-1",
+title:"Autonomous",
+desc:"自動模式",
+level:"🔴 比賽",
+code:`// auto code`,
+tasks:["寫auto","能直走"]
 }
+
 ];
 
-// ===== 儲存進度 =====
+// ===== 進度 =====
 let progress = JSON.parse(localStorage.getItem("progress")||"{}");
 
-// ===== 切換畫面 =====
-function showView(view){
-  document.getElementById("dashboard").classList.add("hidden");
-  document.getElementById("lesson").classList.add("hidden");
-  document.getElementById("resources").classList.add("hidden");
-
-  document.getElementById(view).classList.remove("hidden");
+// ===== 切換頁面 =====
+function showView(v){
+  ["dashboard","lesson","resources"].forEach(id=>{
+    document.getElementById(id).classList.add("hidden");
+  });
+  document.getElementById(v).classList.remove("hidden");
 }
 
-// ===== 渲染課程 =====
+// ===== 鎖關判斷 =====
+function isLocked(l){
+  if(l.level==="🟣 進階" && !progress["basic-2"]) return true;
+  if(l.level==="🔴 比賽" && !progress["adv-1"]) return true;
+  return false;
+}
+
+// ===== 課程列表 =====
 function renderCourses(){
-  const el = document.getElementById("courses");
-  el.innerHTML = lessons.map(l=>{
-    let done = (progress[l.id]||[]).length;
-    let percent = Math.round(done/l.tasks.length*100||0);
+  const el=document.getElementById("courses");
+
+  el.innerHTML=lessons.map(l=>{
+    let done=(progress[l.id]||[]).length;
+    let percent=Math.round(done/l.tasks.length*100||0);
+    let locked=isLocked(l);
 
     return `
-    <div class="card bg-slate-800 p-4 rounded cursor-pointer transition border border-slate-700"
-      onclick="openLesson('${l.id}')">
+    <div class="card p-4 rounded border border-slate-700 ${locked?'locked':''}"
+    onclick="${locked?'':`openLesson('${l.id}')`}">
+
+      <div class="text-sm text-blue-400">${l.level}</div>
       <h3 class="text-xl font-bold">${l.title}</h3>
       <p class="text-slate-400">${l.desc}</p>
+
+      ${locked ? '<div class="text-red-400 text-sm">🔒 尚未解鎖</div>' : ''}
+
       <div class="mt-2 text-sm">${done}/${l.tasks.length}</div>
       <div class="bg-slate-700 h-2 mt-1 rounded">
         <div class="bg-blue-500 h-2 rounded" style="width:${percent}%"></div>
       </div>
+
     </div>`;
   }).join("");
 }
 
 // ===== 打開課程 =====
 function openLesson(id){
-  const l = lessons.find(x=>x.id===id);
-  const done = progress[id]||[];
+  const l=lessons.find(x=>x.id===id);
+  const done=progress[id]||[];
 
-  document.getElementById("lessonContent").innerHTML = `
-  <h2 class="text-2xl font-bold mb-4">${l.title}</h2>
+  document.getElementById("lessonContent").innerHTML=`
+  <h2 class="text-2xl mb-4">${l.title}</h2>
 
-  <pre><code class="language-java">${l.code}</code></pre>
+  <pre><code>${l.code}</code></pre>
 
-  <h3 class="mt-4 mb-2">任務</h3>
+  <h3 class="mt-4">任務</h3>
+
   ${l.tasks.map(t=>`
     <div>
       <input type="checkbox"
-        ${done.includes(t)?"checked":""}
-        onchange="toggleTask('${id}','${t}')">
+      ${done.includes(t)?"checked":""}
+      onchange="toggleTask('${id}','${t}')">
       ${t}
     </div>
   `).join("")}
@@ -134,15 +175,22 @@ function openLesson(id){
   showView("lesson");
 }
 
-// ===== 勾選任務 =====
+// ===== 任務切換 =====
 function toggleTask(id,task){
   if(!progress[id]) progress[id]=[];
 
-  const i = progress[id].indexOf(task);
+  const i=progress[id].indexOf(task);
+
   if(i>-1) progress[id].splice(i,1);
   else progress[id].push(task);
 
   localStorage.setItem("progress",JSON.stringify(progress));
+
+  // 🎉 完成提示
+  if(progress[id].length===lessons.find(l=>l.id===id).tasks.length){
+    alert("🎉 任務完成！");
+  }
+
   openLesson(id);
   renderCourses();
 }
