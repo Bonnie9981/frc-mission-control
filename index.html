@@ -3,14 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>FRC Mission Control v4</title>
-
+<title>FRC Mission Control v5</title>
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
 body { background:#0f172a; color:#e2e8f0;}
-.card:hover { transform: translateY(-5px);}
 .locked { opacity:0.3; pointer-events:none;}
 </style>
 </head>
@@ -19,16 +16,16 @@ body { background:#0f172a; color:#e2e8f0;}
 
 <!-- Login -->
 <div id="login" class="flex flex-col items-center justify-center h-screen">
-<h1 class="text-2xl mb-4">登入 Mission Control</h1>
-<input id="username" placeholder="輸入名字" class="text-black p-2 mb-2">
-<button onclick="login()" class="bg-blue-500 px-4 py-2">登入</button>
+<h1 class="text-2xl mb-4">🚀 Mission Control 登入</h1>
+<input id="username" class="text-black p-2 mb-2" placeholder="你的名字">
+<button onclick="login()" class="bg-blue-500 px-4 py-2">進入基地</button>
 </div>
 
 <!-- App -->
 <div id="app" class="hidden">
 
 <nav class="bg-slate-900 p-4 flex justify-between">
-<div class="text-blue-400 font-bold">🚀 FRC Mission Control</div>
+<div class="text-blue-400 font-bold">FRC Mission Control v5</div>
 <div class="space-x-4">
 <button onclick="showView('dashboard')">課程</button>
 <button onclick="showView('debug')">Debug</button>
@@ -45,22 +42,25 @@ body { background:#0f172a; color:#e2e8f0;}
 
 <!-- Lesson -->
 <div id="lesson" class="hidden">
-<button onclick="showView('dashboard')">← 返回</button>
+<button onclick="showView('dashboard')" class="mb-4">← 返回</button>
 <div id="lessonContent"></div>
 </div>
 
 <!-- Debug -->
 <div id="debug" class="hidden">
-<h2 class="text-xl mb-2">Debug 紀錄</h2>
-<input id="bug" placeholder="問題..." class="text-black p-2">
-<input id="fix" placeholder="解法..." class="text-black p-2">
-<button onclick="addDebug()" class="bg-green-500 px-2">新增</button>
-<ul id="debugList"></ul>
+<h2 class="text-xl mb-2">🧾 Debug 紀錄（最重要）</h2>
+
+<input id="bug" placeholder="問題..." class="text-black p-2 mb-1">
+<input id="fix" placeholder="解法..." class="text-black p-2 mb-1">
+
+<button onclick="addDebug()" class="bg-green-500 px-2">新增紀錄</button>
+
+<ul id="debugList" class="mt-4"></ul>
 </div>
 
 <!-- Rank -->
 <div id="rank" class="hidden">
-<h2 class="text-xl mb-2">排行榜</h2>
+<h2 class="text-xl mb-2">🏆 排行榜</h2>
 <ul id="rankList"></ul>
 </div>
 
@@ -82,41 +82,51 @@ function startApp(){
 document.getElementById("login").classList.add("hidden");
 document.getElementById("app").classList.remove("hidden");
 renderCourses();
-renderRank();
 renderDebug();
+renderRank();
 }
 
 if(user) startApp();
 
-// ===== 課程 =====
-const lessons=[
+// ===== 課程（教練版）=====
+const lessons = [
+
 {
 id:"setup",
-title:"環境建置",
-level:"🟢",
-quiz:"wpilib",
-tasks:["安裝VSCode","安裝WPILib"]
+title:"環境建置 (Mission 0)",
+level:"🟢 Rookie",
+doc:"https://docs.wpilib.org/en/stable/docs/zero-to-robot/step-2/getting-started-with-vscode.html",
+hint:"WPILib 是一個為 FRC 設計的函式庫",
+quiz:"library",
+tasks:["安裝 VSCode","安裝 WPILib","建立專案"]
 },
+
 {
 id:"basic",
-title:"Java",
-level:"🔵",
+title:"Java 控制邏輯",
+level:"🔵 基礎",
+doc:"https://www.w3schools.com/java/java_variables.asp",
+hint:"Java 整數型態是 int",
 quiz:"int",
-tasks:["寫變數","寫if"]
+tasks:["定義變數","寫 if 判斷"]
 },
+
 {
 id:"adv",
-title:"PID",
-level:"🟣",
-quiz:"p",
-tasks:["調整PID"]
+title:"PID 控制",
+level:"🟣 進階",
+doc:"https://docs.wpilib.org/en/stable/docs/software/advanced-controls/introduction/introduction-to-pid.html",
+hint:"P = Proportional",
+quiz:"proportional",
+tasks:["計算 error","調整 kP"]
 }
+
 ];
 
 // ===== 進度 =====
-let progress=JSON.parse(localStorage.getItem("progress")||"{}");
+let progress = JSON.parse(localStorage.getItem("progress")||"{}");
 
-// ===== 顯示 =====
+// ===== 切頁 =====
 function showView(v){
 ["dashboard","lesson","debug","rank"].forEach(x=>{
 document.getElementById(x).classList.add("hidden");
@@ -125,32 +135,30 @@ document.getElementById(v).classList.remove("hidden");
 }
 
 // ===== 鎖關 =====
-function locked(l){
-if(l.level==="🟣" && !progress["basic"]?.quiz) return true;
+function isLocked(l){
+if(l.level.includes("進階") && !progress["basic"]?.quiz) return true;
 return false;
 }
 
 // ===== 課程列表 =====
 function renderCourses(){
-const el=document.getElementById("courses");
+let el=document.getElementById("courses");
 
 el.innerHTML=lessons.map(l=>{
 
 let done=(progress[l.id]?.tasks||[]).length;
-let total=l.tasks.length;
 
 return `
-<div class="card p-4 border border-slate-700 rounded ${locked(l)?'locked':''}"
-onclick="${locked(l)?'':`openLesson('${l.id}')`}">
+<div class="p-4 border border-slate-700 rounded ${isLocked(l)?'locked':''}"
+onclick="${isLocked(l)?'':`openLesson('${l.id}')`}">
 
-${l.level}
+<div>${l.level}</div>
 <h3>${l.title}</h3>
+${isLocked(l)?'🔒 未解鎖':''}
+<div>${done}/${l.tasks.length}</div>
 
-${locked(l)?'🔒':''}
-
-${done}/${total}
-
-</div>`;
+</div>
+`;
 }).join("");
 }
 
@@ -161,25 +169,33 @@ let p=progress[id]||{quiz:false,tasks:[]};
 
 document.getElementById("lessonContent").innerHTML=`
 
-<h2>${l.title}</h2>
+<h2 class="text-2xl mb-4 text-blue-400">${l.title}</h2>
 
-<h3>Quiz（通過才解鎖任務）</h3>
-<input id="q">
+<div class="bg-slate-800 p-4 rounded mb-4 border-l-4 border-blue-500">
+<p>${l.hint}</p>
+<a href="${l.doc}" target="_blank" class="underline text-blue-300">
+👉 打開官方文件
+</a>
+</div>
+
+<h3>🧠 Quiz（去文件找答案）</h3>
+<input id="q" class="text-black p-2">
 <button onclick="checkQuiz('${id}','${l.quiz}')">提交</button>
 
-${p.quiz?'<p>✅ 已通過</p>':''}
+${p.quiz ? '<p>✅ 已解鎖任務</p>' : ''}
 
-<h3>任務</h3>
+<div class="${p.quiz ? '' : 'opacity-20 pointer-events-none'} mt-4">
+<h3>🛠️ 任務</h3>
 
 ${l.tasks.map(t=>`
 <div>
 <input type="checkbox"
 ${p.tasks.includes(t)?"checked":""}
-${!p.quiz?"disabled":""}
 onclick="toggleTask('${id}','${t}')">
 ${t}
 </div>
 `).join("")}
+</div>
 
 `;
 
@@ -195,10 +211,10 @@ if(!progress[id]) progress[id]={quiz:true,tasks:[]};
 else progress[id].quiz=true;
 
 save();
-alert("✅ 通過");
+alert("✅ 解鎖成功");
 openLesson(id);
 }else{
-alert("❌ 再試");
+alert("❌ 去查文件再來");
 }
 }
 
@@ -226,20 +242,21 @@ renderDebug();
 
 function renderDebug(){
 let logs=JSON.parse(localStorage.getItem("debug")||"[]");
+
 document.getElementById("debugList").innerHTML=
 logs.map(l=>`<li>${l.user}: ${l.bug} → ${l.fix}</li>`).join("");
 }
 
 // ===== 排行榜 =====
 function renderRank(){
-let logs=JSON.parse(localStorage.getItem("progress")||"{}");
+let scores={};
 
-let score=Object.entries(logs).map(([k,v])=>{
-return {user,score:(v.tasks||[]).length};
+Object.entries(progress).forEach(([k,v])=>{
+scores[user]=(scores[user]||0)+(v.tasks?.length||0);
 });
 
 document.getElementById("rankList").innerHTML=
-score.map(s=>`<li>${s.user}: ${s.score}</li>`).join("");
+Object.entries(scores).map(([u,s])=>`<li>${u}: ${s}</li>`).join("");
 }
 
 // ===== 儲存 =====
