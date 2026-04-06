@@ -3,63 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRC Master Integrated v16 | 導師實戰整合版</title>
+    <title>FRC Eternal Nexus v17 | 全功能整合教學平台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=JetBrains+Mono:wght@400;700&display=swap');
         :root { --neon-blue: #00f3ff; --neon-green: #39ff14; --neon-red: #ff003c; --bg: #050608; }
         body { background: var(--bg); color: #e0e0e0; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; }
-        .cyber-panel { background: #111418; border: 1px solid #222; position: relative; }
+        
+        /* 登入介面全覆蓋 */
+        #login-overlay { background: rgba(5, 6, 8, 0.95); backdrop-filter: blur(20px); z-index: 1000; }
+        .cyber-input { background: #111; border: 1px solid #333; color: var(--neon-blue); outline: none; transition: 0.3s; }
+        .cyber-input:focus { border-color: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
+        
+        /* UI 面板 */
+        .cyber-panel { background: #111418; border: 1px solid #222; }
         .step-node { padding: 15px; border-left: 4px solid #222; cursor: pointer; transition: 0.3s; }
         .step-node.active { border-left-color: var(--neon-blue); background: rgba(0, 243, 255, 0.1); }
         .step-node.done { border-left-color: var(--neon-green); }
-        .motor-rotor { width: 180px; height: 180px; border: 6px solid #333; border-radius: 50%; position: relative; }
+        
+        /* 馬達引擎 */
+        .motor-rotor { width: 180px; height: 180px; border: 8px solid #222; border-radius: 50%; position: relative; }
         .motor-blade { position: absolute; top: 50%; left: 50%; width: 90%; height: 8px; background: var(--neon-blue); transform: translate(-50%, -50%); box-shadow: 0 0 15px var(--neon-blue); }
-        .editor-area { background: #000; color: var(--neon-green); border: 1px solid #333; padding: 15px; font-size: 13px; resize: none; width: 100%; height: 320px; outline: none; }
-        .smoke { position: absolute; width: 20px; height: 20px; background: rgba(255,255,255,0.3); border-radius: 50%; filter: blur(10px); opacity: 0; }
-        @keyframes burn { 0% { transform: translateY(0) scale(1); opacity: 0.5; } 100% { transform: translateY(-100px) scale(3); opacity: 0; } }
-        .is-burning { animation: burn 1s infinite; opacity: 1; }
+        
+        /* 編輯器 */
+        .editor-area { background: #000; color: var(--neon-green); border: 1px solid #333; padding: 15px; font-size: 13px; height: 350px; outline: none; }
+        
+        /* 損壞特效 */
+        .smoke { position: absolute; width: 30px; height: 30px; background: rgba(255,255,255,0.2); border-radius: 50%; filter: blur(15px); opacity: 0; pointer-events: none; }
+        @keyframes smoke-up { 0% { transform: translateY(0) scale(1); opacity: 0.4; } 100% { transform: translateY(-120px) scale(4); opacity: 0; } }
+        .is-burning { animation: smoke-up 1.5s infinite; opacity: 1; }
     </style>
 </head>
-<body class="flex h-screen">
+<body class="flex h-screen overflow-hidden">
 
-    <aside class="w-80 cyber-panel border-r border-gray-800 flex flex-col">
+    <div id="login-overlay" class="fixed inset-0 flex items-center justify-center p-6">
+        <div class="max-w-md w-full cyber-panel p-10 space-y-8 rounded-2xl shadow-[0_0_50px_rgba(0,243,255,0.1)]">
+            <div class="text-center">
+                <h1 class="text-3xl font-black text-white italic tracking-tighter uppercase">Titan_Auth</h1>
+                <p class="text-[10px] text-gray-500 mt-2 tracking-[0.4em]">請輸入開發人員憑證</p>
+            </div>
+            <div class="space-y-4">
+                <input id="user-id" type="text" placeholder="STUDENT_ID" class="w-full cyber-input p-4 rounded text-sm">
+                <input id="user-pw" type="password" placeholder="ACCESS_CODE" class="w-full cyber-input p-4 rounded text-sm">
+                <button onclick="attemptLogin()" class="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-black font-black uppercase tracking-widest transition shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+                    驗證權限
+                </button>
+            </div>
+            <p id="login-msg" class="text-[10px] text-red-500 text-center italic"></p>
+        </div>
+    </div>
+
+    <aside class="w-80 cyber-panel border-r border-gray-900 flex flex-col">
         <div class="p-6 border-b border-gray-800 bg-black/40">
-            <h2 class="text-xl font-black text-cyan-400 italic italic">MISSION_CONTROL</h2>
-            <div class="mt-2 h-1 bg-gray-800 rounded-full overflow-hidden">
-                <div id="nav-progress" class="h-full bg-cyan-400 w-0 transition-all"></div>
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-[10px] text-gray-500 font-bold uppercase">User: <span id="display-user" class="text-cyan-400">---</span></span>
+                <button onclick="logout()" class="text-[9px] text-red-500 underline">登出</button>
+            </div>
+            <h2 class="text-xl font-black text-white italic">MISSION_PATH</h2>
+            <div class="mt-4 h-1 bg-gray-800 rounded-full overflow-hidden">
+                <div id="nav-progress" class="h-full bg-cyan-400 w-0 transition-all duration-1000"></div>
             </div>
         </div>
         <nav id="step-list" class="flex-1 overflow-y-auto p-2"></nav>
-        <div class="p-4 text-[10px] text-gray-600 border-t border-gray-800 italic">SYSTEM_v16_INTEGRATED</div>
     </aside>
 
-    <main class="flex-1 flex flex-col">
-        <header class="h-20 flex items-center justify-between px-10 border-b border-gray-800 bg-black/20">
+    <main class="flex-1 flex flex-col relative">
+        <header class="h-20 flex items-center justify-between px-10 border-b border-gray-900 bg-black/20">
             <div>
-                <h1 id="curr-title" class="text-2xl font-black text-white uppercase tracking-widest">載入中...</h1>
-                <p id="curr-subtitle" class="text-xs text-gray-500">INITIATING_PROTOCOL...</p>
+                <h1 id="curr-title" class="text-2xl font-black text-white tracking-widest">---</h1>
+                <p id="curr-subtitle" class="text-xs text-gray-500 uppercase italic">Waiting for authentication...</p>
             </div>
-            <div class="flex space-x-6 text-right">
-                <div><p class="text-[10px] text-gray-600 uppercase">Temp</p><p id="temp-stat" class="text-sm font-bold text-blue-400">NOMINAL</p></div>
-                <button onclick="compileAndRun()" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-400 text-black font-black text-xs transition">DEPLOY_CODE</button>
+            <div class="flex items-center space-x-8">
+                <div class="text-right">
+                    <p class="text-[10px] text-gray-600">HEAT_STATUS</p>
+                    <p id="temp-stat" class="text-xs font-bold text-blue-400 italic font-black">NOMINAL</p>
+                </div>
+                <button onclick="compileAndRun()" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-black font-black text-xs shadow-[0_0_15px_rgba(0,243,255,0.4)]">DEPLOY_TO_RIO</button>
             </div>
         </header>
 
         <div class="flex-1 flex overflow-hidden">
             <div class="w-7/12 p-8 overflow-y-auto space-y-6">
-                <div class="bg-gray-900/50 p-6 border-l-4 border-cyan-500 rounded">
-                    <h3 class="text-sm font-bold text-cyan-400 mb-2 uppercase italic underline">Step_Tutorial</h3>
-                    <p id="step-desc" class="text-sm text-gray-300 leading-relaxed"></p>
-                    <div id="knowledge-drop" class="mt-4 p-3 bg-blue-900/10 text-[11px] text-blue-300 border border-blue-800/30 rounded"></div>
+                <div class="bg-gray-900/50 p-6 border-l-4 border-cyan-500 rounded relative">
+                    <div class="absolute top-0 right-0 p-2 text-[8px] text-cyan-900 font-black">INSTRUCTION_v17</div>
+                    <p id="step-desc" class="text-sm text-gray-300 leading-relaxed mb-4"></p>
+                    <div id="knowledge-drop" class="p-4 bg-blue-900/10 text-[11px] text-blue-400 border border-blue-900/20 rounded"></div>
                 </div>
 
                 <div class="relative">
-                    <div class="absolute top-0 right-4 px-2 py-1 bg-gray-800 text-[10px] text-gray-500 font-bold">ROBOT.JAVA</div>
                     <textarea id="editor" class="editor-area font-mono" spellcheck="false"></textarea>
-                    <div class="mt-2 flex justify-between items-center">
-                        <span class="text-[10px] text-gray-600 italic">※ 注意：Java 嚴格區分大小寫且必須以分號結尾</span>
-                        <button onclick="resetCode()" class="text-[10px] text-red-500 hover:underline">RESET_TEMPLATE</button>
+                    <div class="mt-2 flex justify-between text-[10px] text-gray-600">
+                        <span>[Robot.java] 實時編譯器已就緒</span>
+                        <button onclick="resetCurrentStep()" class="underline hover:text-red-500">重置代碼</button>
                     </div>
                 </div>
             </div>
@@ -71,147 +106,203 @@
                         <div id="motor-blade" class="motor-blade"></div>
                     </div>
                     <div class="mt-8 text-center">
-                        <p id="speed-display" class="text-5xl font-black text-white">0%</p>
-                        <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-2">Current_Output</p>
+                        <span id="speed-display" class="text-5xl font-black text-white">0%</span>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-[0.5em] mt-2">Output_PWM</p>
                     </div>
                 </div>
-
-                <div class="h-48 bg-black p-6 border-t border-gray-800 font-mono text-[10px] overflow-y-auto">
-                    <p class="text-gray-600 mb-2 underline tracking-widest">SYSTEM_LOG</p>
+                <div class="h-48 bg-black p-6 border-t border-gray-900 font-mono text-[10px] overflow-y-auto">
+                    <p class="text-cyan-900 mb-2 underline tracking-widest">CONSOLE_LOG</p>
                     <div id="console-out" class="space-y-1"></div>
                 </div>
             </div>
         </div>
     </main>
 
-    <script>
-        // 1. 整合所有歷史數據與教學內容
-        const missions = [
-            {
-                title: "00_環境與套件",
-                subtitle: "IMPORTING_LIBRARIES",
-                desc: "首先，我們要教機器人『認識』硬體。在 Java 中，這叫做 <b>import</b>。請在最上方加入 <code>import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;</code> 以引入馬達控制庫。",
-                knowledge: "💡 知識點：WPILib 是 FRC 的靈魂，所有控制感測器與馬達的工具都在這裡面。",
-                start: "import edu.wpi.first.wpilibj.TimedRobot;\n// 在此處加入馬達的 import\n\npublic class Robot extends TimedRobot {\n    // 定義區\n}",
-                check: (code) => code.includes("import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;"),
-                error: "錯誤：找不到馬達庫。請確認拼字與分號！"
-            },
-            {
-                title: "01_定義與初始化",
-                subtitle: "OBJECT_INITIALIZATION",
-                desc: "現在，宣告一個名為 <code>m_motor</code> 的馬達。並在 <code>robotInit</code> 裡將其連接到 <b>PWM 埠號 0</b>。",
-                knowledge: "💡 知識點：robotInit 就像機器人的大腦剛開機，一生只會執行一次，適合用來設定硬體位置。",
-                start: "public class Robot extends TimedRobot {\n    PWMVictorSPX m_motor;\n\n    @Override\n    public void robotInit() {\n        // 實體化馬達 m_motor = new ...\n    }\n}",
-                check: (code) => code.includes("m_motor = new PWMVictorSPX(0);"),
-                error: "錯誤：馬達實體化失敗。記得要用 new 關鍵字並指向埠號 0！"
-            },
-            {
-                title: "02_週期控制邏輯",
-                subtitle: "PERIODIC_CONTROL",
-                desc: "最後，我們要讓馬達動。在 <code>robotPeriodic</code> 裡，使用 <code>m_motor.set(0.5);</code> 讓它以半速旋轉。<b>注意：數值超過 1.0 會導致過熱！</b>",
-                knowledge: "💡 知識點：robotPeriodic 每秒執行 50 次 (20ms)，這就是機器人的心跳。",
-                start: "@Override\npublic void robotPeriodic() {\n    // 讓馬達轉起來\n}",
-                check: (code) => {
-                    if (code.includes("m_motor.set(0.5);")) return "ok";
-                    if (code.match(/set\((1\.[1-9]|[2-9])/)) return "burn";
-                    return "fail";
-                },
-                error: "錯誤：馬達沒有收到正確的 speed 指令！"
+<script>
+// --- [1. 完善的課程體系：安裝、變數、邏輯、控制] ---
+const curriculum = [
+    {
+        id: "install",
+        title: "00_環境準備",
+        subtitle: "SETUP_ENVIRONMENT",
+        desc: "身為 FRC 工程師，第一步是<b>安裝 WPILib</b>。它包含了開發機器人的所有工具。任務：模擬下載並引入核心馬達控制庫。",
+        tip: "💡 知識：PWMVictorSPX 是常見的馬達控制器類別。沒有 import 它，你的 Robot.java 就像沒有字典一樣。",
+        code: "// 在此處填寫 import 語句\n\npublic class Robot extends TimedRobot {\n}",
+        solution: "import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;",
+        onCheck: (c) => c.includes("import edu.wpi.first.wpilibj.motorcontrol.PWMVictorSPX;")
+    },
+    {
+        id: "declare",
+        title: "01_硬體實體化",
+        subtitle: "INSTANCE_DECLARATION",
+        desc: "我們要在程式中『宣告』馬達。請定義一個名為 <code>m_motor</code> 的馬達，並在 <code>robotInit</code> 裡將其連接至 <b>PWM 0</b>。",
+        tip: "💡 知識：new 關鍵字會在記憶體中創造出一個實體。埠號必須與機器人上的接線一致。",
+        code: "public class Robot extends TimedRobot {\n    PWMVictorSPX m_motor;\n\n    public void robotInit() {\n        // 在此實體化馬達\n    }\n}",
+        solution: "m_motor = new PWMVictorSPX(0);",
+        onCheck: (c) => c.includes("m_motor = new PWMVictorSPX(0);")
+    },
+    {
+        id: "periodic",
+        title: "02_週期控制",
+        subtitle: "PERIODIC_LOOP",
+        desc: "在 <code>robotPeriodic</code> 寫入控制邏輯。請設定馬達出力為 <b>0.6</b>。注意：設定超過 1.0 或死循環會導致硬體損毀。",
+        tip: "💡 知識：Periodic 每秒執行 50 次，這讓機器人能實時反應。出力範圍是 -1.0 到 1.0。",
+        code: "public void robotPeriodic() {\n    // 設定馬達出力\n}",
+        solution: "m_motor.set(0.6);",
+        onCheck: (c) => {
+            if (c.includes("m_motor.set(0.6);")) return "ok";
+            if (c.match(/set\((1\.[1-9]|[2-9])/)) return "burn";
+            return false;
+        }
+    }
+];
+
+// --- [2. 狀態管理與登入邏輯] ---
+let userData = {
+    username: "",
+    progress: 0,
+    isLoggedIn: false
+};
+
+function attemptLogin() {
+    const id = document.getElementById('user-id').value;
+    const pw = document.getElementById('user-pw').value;
+    const msg = document.getElementById('login-msg');
+
+    if(id && pw === "FRC2026") {
+        userData.username = id;
+        userData.isLoggedIn = true;
+        document.getElementById('login-overlay').classList.add('hidden');
+        document.getElementById('display-user').innerText = id;
+        localStorage.setItem("titan_user", JSON.stringify(userData));
+        initApp();
+    } else {
+        msg.innerText = "憑證錯誤。提示：密碼是 FRC2026";
+    }
+}
+
+function initApp() {
+    renderNav();
+    loadStep(userData.progress);
+    startPhysics();
+}
+
+// --- [3. 教學與模擬核心] ---
+let motorSpeed = 0;
+let currentRotation = 0;
+
+function renderNav() {
+    const list = document.getElementById('step-list');
+    list.innerHTML = curriculum.map((s, idx) => `
+        <div id="node-${idx}" class="step-node ${idx === userData.progress ? 'active' : ''}" onclick="loadStep(${idx})">
+            <p class="text-[9px] text-gray-500 font-bold tracking-widest">MISSION_0${idx}</p>
+            <p class="text-xs font-bold">${s.title}</p>
+        </div>
+    `).join("");
+    updateProgressBar();
+}
+
+function loadStep(idx) {
+    if(idx > userData.progress) return; // 不能越級
+    const step = curriculum[idx];
+    document.getElementById('curr-title').innerText = step.title;
+    document.getElementById('curr-subtitle').innerText = step.subtitle;
+    document.getElementById('step-desc').innerHTML = step.desc;
+    document.getElementById('knowledge-drop').innerHTML = step.tip;
+    document.getElementById('editor').value = step.code;
+    
+    // UI 高亮切換
+    document.querySelectorAll('.step-node').forEach(n => n.classList.remove('active'));
+    document.getElementById(`node-${idx}`).classList.add('active');
+}
+
+function compileAndRun() {
+    const code = document.getElementById('editor').value;
+    const step = curriculum[userData.progress];
+    const result = step.onCheck(code);
+
+    addLog("> 正在將代碼編譯為 Bytecode...", "gray");
+    
+    setTimeout(() => {
+        if(result === "ok" || result === true) {
+            addLog("> BUILD SUCCESSFUL! 佈署至 RoboRIO...", "green");
+            if(userData.progress === 2) motorSpeed = 0.6; // 只有在最後一關才啟動馬達
+            updateSimUI();
+            
+            // 進階
+            if(userData.progress < curriculum.length - 1) {
+                userData.progress++;
+                localStorage.setItem("titan_user", JSON.stringify(userData));
+                setTimeout(() => {
+                    alert("這關你學會了！正在開啟下一個協議...");
+                    renderNav();
+                    loadStep(userData.progress);
+                }, 1500);
             }
-        ];
-
-        let currentIdx = 0;
-        let motorSpeed = 0;
-        let angle = 0;
-
-        function init() {
-            renderNav();
-            loadMission(0);
-            startPhysics();
+        } else if(result === "burn") {
+            addLog("> FATAL ERROR: 馬達過壓損毀！", "red");
+            triggerBurn();
+        } else {
+            addLog("> BUILD FAILED: 語法不匹配或邏輯遺漏。", "red");
         }
+    }, 1000);
+}
 
-        function renderNav() {
-            const list = document.getElementById('step-list');
-            list.innerHTML = missions.map((m, idx) => `
-                <div id="node-${idx}" class="step-node ${idx === currentIdx ? 'active' : ''}" onclick="loadMission(${idx})">
-                    <p class="text-[9px] text-gray-500 font-bold tracking-widest">STEP_0${idx}</p>
-                    <p class="text-xs font-bold">${m.title}</p>
-                </div>
-            `).join("");
+function triggerBurn() {
+    document.getElementById('smoke-eff').classList.add('is-burning');
+    document.getElementById('temp-stat').innerText = "CRITICAL";
+    document.getElementById('temp-stat').className = "text-xs font-bold text-red-500";
+    motorSpeed = 0;
+    updateSimUI();
+}
+
+function startPhysics() {
+    setInterval(() => {
+        if(motorSpeed > 0) {
+            currentRotation += (motorSpeed * 30);
+            document.getElementById('motor-blade').style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
         }
+    }, 20); // 50Hz FRC 標準
+}
 
-        function loadMission(idx) {
-            currentIdx = idx;
-            const m = missions[idx];
-            document.getElementById('curr-title').innerText = m.title;
-            document.getElementById('curr-subtitle').innerText = m.subtitle;
-            document.getElementById('step-desc').innerHTML = m.desc;
-            document.getElementById('knowledge-drop').innerHTML = m.knowledge;
-            document.getElementById('editor').value = m.start;
-            renderNav();
-            updateProgress();
-        }
+function updateSimUI() {
+    document.getElementById('speed-display').innerText = Math.round(motorSpeed * 100) + "%";
+}
 
-        function compileAndRun() {
-            const code = document.getElementById('editor').value;
-            const m = missions[currentIdx];
-            const result = m.check(code);
-            
-            addLog("> 正在進行 Build 編譯...", "gray");
-            
-            setTimeout(() => {
-                if(result === "ok" || result === true) {
-                    addLog("> BUILD SUCCESSFUL!", "green");
-                    if(currentIdx === 2) motorSpeed = 0.5; 
-                    updateDisplay();
-                    document.getElementById(`node-${currentIdx}`).classList.add('done');
-                    if(currentIdx < missions.length - 1) setTimeout(() => loadMission(currentIdx+1), 2000);
-                } else if(result === "burn") {
-                    addLog("> FATAL ERROR: VOLTAGE OVERLOAD!", "red");
-                    triggerBurn();
-                } else {
-                    addLog("> BUILD FAILED: " + m.error, "red");
-                }
-            }, 1000);
-        }
+function addLog(msg, color) {
+    const out = document.getElementById('console-out');
+    const p = document.createElement('p');
+    p.className = color === "red" ? "text-red-500" : (color === "green" ? "text-green-400" : "text-gray-500");
+    p.innerText = msg;
+    out.appendChild(p);
+    out.scrollTop = out.scrollHeight;
+}
 
-        function triggerBurn() {
-            document.getElementById('smoke-eff').classList.add('is-burning');
-            document.getElementById('temp-stat').innerText = "OVERHEAT";
-            document.getElementById('temp-stat').className = "text-sm font-bold text-red-500";
-            motorSpeed = 0;
-        }
+function updateProgressBar() {
+    const p = (userData.progress / (curriculum.length - 1)) * 100;
+    document.getElementById('nav-progress').style.width = p + "%";
+}
 
-        function startPhysics() {
-            setInterval(() => {
-                if(motorSpeed > 0) {
-                    angle += (motorSpeed * 30);
-                    document.getElementById('motor-blade').style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
-                }
-            }, 20);
-        }
+function resetCurrentStep() {
+    loadStep(userData.progress);
+}
 
-        function updateDisplay() {
-            document.getElementById('speed-display').innerText = (motorSpeed * 100) + "%";
-        }
+function logout() {
+    localStorage.removeItem("titan_user");
+    location.reload();
+}
 
-        function addLog(msg, color) {
-            const out = document.getElementById('console-out');
-            const p = document.createElement('p');
-            p.className = color === "red" ? "text-red-500" : (color === "green" ? "text-green-400" : "text-gray-500");
-            p.innerText = msg;
-            out.appendChild(p);
-            out.scrollTop = out.scrollHeight;
-        }
+// 檢查持久化進度
+window.onload = () => {
+    const saved = localStorage.getItem("titan_user");
+    if(saved) {
+        userData = JSON.parse(saved);
+        document.getElementById('login-overlay').classList.add('hidden');
+        document.getElementById('display-user').innerText = userData.username;
+        initApp();
+    }
+};
 
-        function updateProgress() {
-            const p = ((currentIdx) / (missions.length - 1)) * 100;
-            document.getElementById('nav-progress').style.width = p + "%";
-        }
-
-        function resetCode() { if(confirm("重置此關卡代碼？")) loadMission(currentIdx); }
-
-        init();
-    </script>
+</script>
 </body>
 </html>
