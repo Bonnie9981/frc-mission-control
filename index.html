@@ -3,102 +3,112 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FRC Mission Control v2</title>
+
+<title>FRC Mission Control v3</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-
 <style>
-body { background: #0f172a; color: #e2e8f0; }
-.card:hover { transform: translateY(-5px); }
-.locked { opacity: 0.3; pointer-events: none; }
+body { background:#0f172a; color:#e2e8f0;}
+.card:hover { transform: translateY(-5px);}
+.locked { opacity:0.3; pointer-events:none;}
 </style>
+
 </head>
 
 <body>
 
 <!-- Navbar -->
 <nav class="bg-slate-900 p-4 flex justify-between">
-  <div class="text-xl text-blue-400 font-bold">🚀 FRC Mission Control</div>
-  <div>
-    <button onclick="showView('dashboard')" class="mr-4">課程</button>
-    <button onclick="showView('resources')">資源</button>
-  </div>
+<div class="text-xl text-blue-400 font-bold">🚀 FRC Mission Control</div>
+<div class="space-x-4">
+<button onclick="showView('dashboard')">課程</button>
+<button onclick="showView('resources')">資源</button>
+<button onclick="showView('terms')">術語</button>
+<button onclick="showView('mentor')">Mentor</button>
+</div>
 </nav>
 
 <div class="p-6 max-w-6xl mx-auto">
 
 <!-- Dashboard -->
 <div id="dashboard">
-  <h1 class="text-3xl mb-4">學習路線</h1>
-  <div id="courses" class="grid md:grid-cols-2 gap-4"></div>
+<h1 class="text-3xl mb-4">學習路線</h1>
+<div id="courses" class="grid md:grid-cols-2 gap-4"></div>
 </div>
 
 <!-- Lesson -->
 <div id="lesson" class="hidden">
-  <button onclick="showView('dashboard')" class="mb-4 text-blue-400">← 返回</button>
-  <div id="lessonContent"></div>
+<button onclick="showView('dashboard')" class="mb-4 text-blue-400">← 返回</button>
+<div id="lessonContent"></div>
 </div>
 
 <!-- Resources -->
 <div id="resources" class="hidden">
-  <h2 class="text-2xl mb-4">資源</h2>
-  <a href="https://docs.wpilib.org/" target="_blank">WPILib Docs</a>
+<h2 class="text-2xl mb-4">資源</h2>
+<a href="https://docs.wpilib.org/" target="_blank">WPILib Docs</a>
+</div>
+
+<!-- Terms -->
+<div id="terms" class="hidden">
+<h2 class="text-2xl mb-4">術語表</h2>
+<ul>
+<li>CAN Bus：機器人內部通訊系統</li>
+<li>RoboRIO：機器人大腦</li>
+<li>TalonSRX：馬達控制器</li>
+</ul>
+</div>
+
+<!-- Mentor -->
+<div id="mentor" class="hidden">
+<h2 class="text-2xl mb-4">Mentor</h2>
+<p>有問題請找學長或幹部 👍</p>
 </div>
 
 </div>
 
 <script>
 
-// ===== 課程系統 =====
+// ===== 課程 =====
 const lessons = [
 
 {
-id:"rookie-1",
-title:"Rookie 101",
-desc:"認識 FRC",
+id:"setup",
+title:"環境建置",
+desc:"安裝開發環境",
 level:"🟢 Rookie",
-code:"// 無程式碼",
-tasks:["看規則","了解分工","安全知識"]
+content:"安裝 VSCode + WPILib",
+quiz:{
+q:"WPILib 是什麼？",
+a:"robot library"
+},
+tasks:["完成安裝"]
 },
 
 {
-id:"basic-1",
+id:"basic",
 title:"Java 基礎",
-desc:"基本語法",
+desc:"學語法",
 level:"🔵 基礎",
-code:`int x = 5;
-System.out.println(x);`,
-tasks:["理解變數","寫if","寫for"]
+content:"變數、if、for",
+quiz:{
+q:"int 是什麼？",
+a:"變數型態"
+},
+tasks:["理解語法"]
 },
 
 {
-id:"basic-2",
-title:"WPILib",
-desc:"建立專案",
-level:"🔵 基礎",
-code:`public class Robot {}`,
-tasks:["安裝WPILib","成功deploy"]
-},
-
-{
-id:"adv-1",
+id:"adv",
 title:"PID 控制",
-desc:"穩定控制",
+desc:"控制系統",
 level:"🟣 進階",
-code:`double output = error * kP;`,
-tasks:["理解PID","調整數值"]
+content:"error = target - current",
+quiz:{
+q:"P 代表？",
+a:"比例"
 },
-
-{
-id:"pro-1",
-title:"Autonomous",
-desc:"自動模式",
-level:"🔴 比賽",
-code:`// auto code`,
-tasks:["寫auto","能直走"]
+tasks:["理解PID"]
 }
 
 ];
@@ -106,93 +116,90 @@ tasks:["寫auto","能直走"]
 // ===== 進度 =====
 let progress = JSON.parse(localStorage.getItem("progress")||"{}");
 
-// ===== 切換頁面 =====
+// ===== 顯示 =====
 function showView(v){
-  ["dashboard","lesson","resources"].forEach(id=>{
-    document.getElementById(id).classList.add("hidden");
-  });
-  document.getElementById(v).classList.remove("hidden");
+["dashboard","lesson","resources","terms","mentor"].forEach(id=>{
+document.getElementById(id).classList.add("hidden");
+});
+document.getElementById(v).classList.remove("hidden");
 }
 
-// ===== 鎖關判斷 =====
+// ===== 鎖關 =====
 function isLocked(l){
-  if(l.level==="🟣 進階" && !progress["basic-2"]) return true;
-  if(l.level==="🔴 比賽" && !progress["adv-1"]) return true;
-  return false;
+if(l.level==="🟣 進階" && !progress["basic"]) return true;
+return false;
 }
 
-// ===== 課程列表 =====
+// ===== 渲染 =====
 function renderCourses(){
-  const el=document.getElementById("courses");
+const el=document.getElementById("courses");
 
-  el.innerHTML=lessons.map(l=>{
-    let done=(progress[l.id]||[]).length;
-    let percent=Math.round(done/l.tasks.length*100||0);
-    let locked=isLocked(l);
+el.innerHTML=lessons.map(l=>{
+let done=(progress[l.id]||[]).length;
+let percent=Math.round(done/l.tasks.length*100||0);
+let locked=isLocked(l);
 
-    return `
-    <div class="card p-4 rounded border border-slate-700 ${locked?'locked':''}"
-    onclick="${locked?'':`openLesson('${l.id}')`}">
+return `
+<div class="card p-4 border border-slate-700 rounded ${locked?'locked':''}"
+onclick="${locked?'':`openLesson('${l.id}')`}">
 
-      <div class="text-sm text-blue-400">${l.level}</div>
-      <h3 class="text-xl font-bold">${l.title}</h3>
-      <p class="text-slate-400">${l.desc}</p>
+<div class="text-blue-400 text-sm">${l.level}</div>
+<h3 class="text-xl font-bold">${l.title}</h3>
+<p>${l.desc}</p>
 
-      ${locked ? '<div class="text-red-400 text-sm">🔒 尚未解鎖</div>' : ''}
+${locked ? '🔒 鎖定' : ''}
 
-      <div class="mt-2 text-sm">${done}/${l.tasks.length}</div>
-      <div class="bg-slate-700 h-2 mt-1 rounded">
-        <div class="bg-blue-500 h-2 rounded" style="width:${percent}%"></div>
-      </div>
+<div>${done}/${l.tasks.length}</div>
+<div class="bg-slate-700 h-2">
+<div class="bg-blue-500 h-2" style="width:${percent}%"></div>
+</div>
 
-    </div>`;
-  }).join("");
+</div>
+`;
+}).join("");
 }
 
 // ===== 打開課程 =====
 function openLesson(id){
-  const l=lessons.find(x=>x.id===id);
-  const done=progress[id]||[];
+const l=lessons.find(x=>x.id===id);
+const done=progress[id]||[];
 
-  document.getElementById("lessonContent").innerHTML=`
-  <h2 class="text-2xl mb-4">${l.title}</h2>
+document.getElementById("lessonContent").innerHTML=`
 
-  <pre><code>${l.code}</code></pre>
+<h2 class="text-2xl mb-2">${l.title}</h2>
+<p class="mb-4">${l.content}</p>
 
-  <h3 class="mt-4">任務</h3>
+<h3>測驗</h3>
+<input id="quizAnswer" class="text-black">
+<button onclick="checkQuiz('${id}','${l.quiz.a}')">提交</button>
 
-  ${l.tasks.map(t=>`
-    <div>
-      <input type="checkbox"
-      ${done.includes(t)?"checked":""}
-      onchange="toggleTask('${id}','${t}')">
-      ${t}
-    </div>
-  `).join("")}
-  `;
+<h3 class="mt-4">任務</h3>
 
-  hljs.highlightAll();
-  showView("lesson");
+${l.tasks.map(t=>`
+<div>
+<input type="checkbox"
+${done.includes(t)?"checked":""}
+disabled>
+${t}
+</div>
+`).join("")}
+`;
+
+showView("lesson");
 }
 
-// ===== 任務切換 =====
-function toggleTask(id,task){
-  if(!progress[id]) progress[id]=[];
+// ===== Quiz =====
+function checkQuiz(id,ans){
+let input=document.getElementById("quizAnswer").value;
 
-  const i=progress[id].indexOf(task);
-
-  if(i>-1) progress[id].splice(i,1);
-  else progress[id].push(task);
-
-  localStorage.setItem("progress",JSON.stringify(progress));
-
-  // 🎉 完成提示
-  if(progress[id].length===lessons.find(l=>l.id===id).tasks.length){
-    alert("🎉 任務完成！");
-  }
-
-  openLesson(id);
-  renderCourses();
+if(input===ans){
+progress[id]=["done"];
+localStorage.setItem("progress",JSON.stringify(progress));
+alert("🎉 正確！");
+renderCourses();
+}else{
+alert("❌ 再試一次");
+}
 }
 
 // 初始化
